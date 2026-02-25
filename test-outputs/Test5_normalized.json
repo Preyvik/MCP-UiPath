@@ -1,0 +1,215 @@
+{
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Stress Test Workflow",
+    "children": [
+      {
+        "type": "Assign",
+        "displayName": "Flat String Assign",
+        "to": {
+          "type": "String",
+          "value": "[strVar]"
+        },
+        "value": {
+          "type": "String",
+          "value": "[\"Hello World\"]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Flat Int Assign",
+        "to": {
+          "type": "String",
+          "value": "[intVar]"
+        },
+        "value": {
+          "type": "Int32",
+          "value": "[99]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Flat Bool Assign",
+        "to": {
+          "type": "String",
+          "value": "[boolVar]"
+        },
+        "value": {
+          "type": "Boolean",
+          "value": "[True]"
+        }
+      },
+      {
+        "type": "ForEach",
+        "displayName": "Loop with x: prefix",
+        "typeArguments": "String",
+        "values": "[myCollection]",
+        "body": {
+          "variableName": "item",
+          "variableType": "String",
+          "activity": {
+            "type": "Sequence",
+            "displayName": "Inner Loop Body",
+            "children": [
+              {
+                "type": "LogMessage",
+                "displayName": "Log Item",
+                "level": "Info",
+                "message": "[\"Processing: \" & item]"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "type": "Switch",
+        "displayName": "Array Case Switch",
+        "typeArguments": "String",
+        "expression": "[statusVar]",
+        "cases": {
+          "Active": {
+            "type": "LogMessage",
+            "displayName": "Log Active",
+            "level": "Info",
+            "message": "[\"Status is Active\"]"
+          },
+          "Inactive": {
+            "type": "LogMessage",
+            "displayName": "Log Inactive",
+            "level": "Warn",
+            "message": "[\"Status is Inactive\"]"
+          }
+        },
+        "default": {
+          "type": "LogMessage",
+          "displayName": "Log Default",
+          "level": "Info",
+          "message": "[\"Unknown status\"]"
+        }
+      },
+      {
+        "type": "If",
+        "displayName": "Bare Condition If",
+        "condition": "[intVar > 50]",
+        "then": {
+          "type": "LogMessage",
+          "displayName": "Log High",
+          "level": "Info",
+          "message": "[\"Value is high: \" & intVar.ToString]"
+        },
+        "else": null
+      },
+      {
+        "type": "While",
+        "displayName": "Bare Condition While",
+        "condition": "[boolVar]",
+        "body": {
+          "type": "Sequence",
+          "displayName": "While Body",
+          "children": [
+            {
+              "type": "Assign",
+              "displayName": "Toggle Bool",
+              "to": {
+                "type": "String",
+                "value": "[boolVar]"
+              },
+              "value": {
+                "type": "Boolean",
+                "value": "[False]"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "TryCatch",
+        "displayName": "Dual Catch TryCatch",
+        "try": {
+          "type": "Sequence",
+          "displayName": "Try Body",
+          "children": [
+            {
+              "type": "LogMessage",
+              "displayName": "Log Try",
+              "level": "Info",
+              "message": "[\"In try block\"]"
+            }
+          ]
+        },
+        "catches": [
+          {
+            "exceptionType": "ArgumentException",
+            "variableName": "argEx",
+            "handler": {
+              "type": "LogMessage",
+              "displayName": "Log ArgEx",
+              "level": "Error",
+              "message": "[\"Argument error: \" & argEx.Message]"
+            }
+          },
+          {
+            "exceptionType": "Exception",
+            "variableName": "genEx",
+            "handler": {
+              "type": "LogMessage",
+              "displayName": "Log GenEx",
+              "level": "Error",
+              "message": "[\"General error: \" & genEx.Message]"
+            }
+          }
+        ],
+        "finally": {
+          "type": "LogMessage",
+          "displayName": "Log Finally",
+          "level": "Info",
+          "message": "[\"Finally block executed\"]"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "class": "",
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "mscorlib"
+    ],
+    "arguments": []
+  }
+}

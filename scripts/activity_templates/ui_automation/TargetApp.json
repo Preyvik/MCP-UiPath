@@ -1,0 +1,31 @@
+{
+  "type": "TargetApp",
+  "displayName": "Target Application",
+  "description": "Defines the target application for UI automation scope",
+  "namespace": "uix",
+  "requiredAttributes": ["selector"],
+  "optionalAttributes": ["filePath", "area", "contentHash", "iconBase64", "informativeScreenshot", "reference", "version", "arguments", "workingDirectory"],
+  "template": {
+    "type": "TargetApp",
+    "selector": "<wnd app='application.exe' />",
+    "filePath": null,
+    "version": "V2",
+    "arguments": {
+      "inArgument": {
+        "x:TypeArguments": "x:String",
+        "value": null
+      }
+    },
+    "workingDirectory": {
+      "inArgument": {
+        "x:TypeArguments": "x:String",
+        "value": null
+      }
+    }
+  },
+  "scopingRules": {
+    "mustBeWithin": ["NApplicationCard.TargetApp"],
+    "description": "Nested within NApplicationCard to define application target"
+  },
+  "notes": "Selector identifies application window. FilePath used to launch application if not running."
+}

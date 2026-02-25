@@ -1,0 +1,18 @@
+{
+  "type": "PointOffset",
+  "displayName": "Point Offset",
+  "description": "Defines a coordinate offset for UI element targeting",
+  "namespace": "uix",
+  "requiredAttributes": [],
+  "optionalAttributes": ["x", "y"],
+  "template": {
+    "type": "PointOffset",
+    "x": 0,
+    "y": 0
+  },
+  "scopingRules": {
+    "mustBeWithin": ["TargetAnchorable.PointOffset"],
+    "description": "Nested within TargetAnchorable element of UI automation activities"
+  },
+  "notes": "Often used as empty element. X/Y specify pixel offset from target element center."
+}

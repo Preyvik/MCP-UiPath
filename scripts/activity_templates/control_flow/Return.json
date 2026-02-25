@@ -1,0 +1,13 @@
+{
+  "type": "Return",
+  "displayName": "Return",
+  "description": "Exits the current workflow and optionally returns a value",
+  "namespace": "ui",
+  "requiredAttributes": [],
+  "optionalAttributes": ["displayName", "result", "hintSize", "idRef"],
+  "template": {
+    "type": "Return",
+    "displayName": "Return"
+  },
+  "notes": "Use Result property when workflow has OutArgument. Leave empty for void workflows."
+}

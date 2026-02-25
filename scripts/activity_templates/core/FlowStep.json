@@ -1,0 +1,26 @@
+{
+  "type": "FlowStep",
+  "displayName": "Flow Step",
+  "description": "A step in a flowchart that contains an activity and can connect to other steps",
+  "namespace": "default",
+  "requiredAttributes": ["x:Name", "activity"],
+  "optionalAttributes": ["displayName", "next", "viewState", "hintSize", "idRef"],
+  "template": {
+    "type": "FlowStep",
+    "x:Name": "__ReferenceID0",
+    "activity": {
+      "type": "Sequence",
+      "displayName": "Flow Step Body",
+      "activities": []
+    },
+    "next": null,
+    "viewState": {
+      "ShapeLocation": "300,200"
+    }
+  },
+  "scopingRules": {
+    "mustBeWithin": ["Flowchart"],
+    "description": "Must be within Flowchart container"
+  },
+  "notes": "x:Name must be unique within flowchart (format: __ReferenceID#). Next property uses <x:Reference> to link to other FlowStep/FlowDecision nodes. Activity is required and must contain a valid child activity."
+}

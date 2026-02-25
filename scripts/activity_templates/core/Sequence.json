@@ -1,0 +1,13 @@
+{
+  "type": "Sequence",
+  "displayName": "Sequence",
+  "description": "Container for sequential execution of activities",
+  "namespace": "default",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["hintSize", "idRef", "variables", "activities", "viewState"],
+  "template": {
+    "type": "Sequence",
+    "displayName": "Sequence",
+    "activities": []
+  }
+}

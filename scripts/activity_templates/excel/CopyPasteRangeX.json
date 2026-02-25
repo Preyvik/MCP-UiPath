@@ -1,0 +1,16 @@
+{
+  "type": "CopyPasteRangeX",
+  "displayName": "Copy Paste Range",
+  "description": "Copies data from one range to another",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "sourceRange", "destinationRange"],
+  "optionalAttributes": ["sourceSheet", "destinationSheet", "hintSize", "idRef"],
+  "template": {
+    "type": "CopyPasteRangeX",
+    "displayName": "Copy Paste Range",
+    "sourceSheet": "\"Sheet1\"",
+    "sourceRange": "\"A1:B10\"",
+    "destinationSheet": "\"Sheet2\"",
+    "destinationRange": "\"A1\""
+  }
+}

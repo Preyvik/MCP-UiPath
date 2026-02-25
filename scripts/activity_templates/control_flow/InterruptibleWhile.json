@@ -1,0 +1,25 @@
+{
+  "type": "InterruptibleWhile",
+  "displayName": "Interruptible While",
+  "description": "A while loop that can be interrupted by external triggers or conditions",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "condition"],
+  "optionalAttributes": ["body", "interruptCondition", "maxIterations", "currentIndex", "hintSize", "idRef"],
+  "template": {
+    "type": "InterruptibleWhile",
+    "displayName": "Interruptible While",
+    "condition": "True",
+    "interruptCondition": null,
+    "maxIterations": -1,
+    "currentIndex": null,
+    "body": {
+      "variableName": "argument",
+      "variableType": "Boolean",
+      "activity": null
+    }
+  },
+  "scopingRules": {
+    "canContain": ["Continue", "Break"],
+    "description": "Supports Continue and Break activities within body"
+  }
+}

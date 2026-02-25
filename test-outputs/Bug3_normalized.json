@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "class": "Bug3Test",
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "mscorlib"
+    ],
+    "arguments": []
+  },
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Main",
+    "variables": [
+      {
+        "name": "status",
+        "type": "String",
+        "default": "\"High\""
+      },
+      {
+        "name": "counter",
+        "type": "Int32",
+        "default": "1"
+      }
+    ],
+    "children": [
+      {
+        "type": "Switch",
+        "displayName": "Route",
+        "typeArguments": "String",
+        "expression": "[status]",
+        "cases": [
+          {
+            "key": "High",
+            "activity": {
+              "type": "Assign",
+              "displayName": "Set High",
+              "to": {
+                "type": "String",
+                "value": "[counter]"
+              },
+              "value": {
+                "type": "String",
+                "value": "[counter * 10]"
+              }
+            }
+          },
+          {
+            "key": "Low",
+            "activity": {
+              "type": "Assign",
+              "displayName": "Set Low",
+              "to": {
+                "type": "String",
+                "value": "[counter]"
+              },
+              "value": {
+                "type": "String",
+                "value": "[counter + 1]"
+              }
+            }
+          }
+        ],
+        "default": {
+          "type": "Assign",
+          "displayName": "Set Default",
+          "to": {
+            "type": "String",
+            "value": "[counter]"
+          },
+          "value": {
+            "type": "String",
+            "value": "[counter]"
+          }
+        }
+      }
+    ]
+  }
+}

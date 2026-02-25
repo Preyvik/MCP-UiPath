@@ -1,0 +1,14 @@
+{
+  "type": "LogMessage",
+  "displayName": "Log Message",
+  "description": "Logs a message to the execution log",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "message"],
+  "optionalAttributes": ["level", "hintSize", "idRef"],
+  "template": {
+    "type": "LogMessage",
+    "displayName": "Log Message",
+    "level": "Info",
+    "message": "\"Log message text\""
+  }
+}

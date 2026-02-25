@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mcp-uipath": {
+      "command": "node",
+      "args": ["C:\\Users\\20300234\\Claude\\MCP-UiPath\\build\\index.js"]
+    }
+  }
+}

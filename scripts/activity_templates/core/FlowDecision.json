@@ -1,0 +1,21 @@
+{
+  "type": "FlowDecision",
+  "displayName": "Flow Decision",
+  "description": "Conditional branching node in a flowchart with True/False paths",
+  "namespace": "default",
+  "requiredAttributes": ["x:Name", "condition"],
+  "optionalAttributes": ["displayName", "true", "false", "hintSize", "idRef"],
+  "template": {
+    "type": "FlowDecision",
+    "x:Name": "__ReferenceID0",
+    "displayName": "Decision",
+    "condition": "[booleanExpression]",
+    "true": null,
+    "false": null
+  },
+  "scopingRules": {
+    "mustBeWithin": ["Flowchart"],
+    "description": "Must be within Flowchart container. True/False properties use <x:Reference> to link to other nodes."
+  },
+  "notes": "x:Name must be unique (format: __ReferenceID#). True/False paths reference other FlowStep or FlowDecision nodes."
+}

@@ -1,0 +1,13 @@
+{
+  "type": "Delay",
+  "displayName": "Delay",
+  "description": "Pauses execution for a specified duration",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "duration"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "Delay",
+    "displayName": "Delay",
+    "duration": "00:00:05"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "SetToClipboard",
+  "displayName": "Set To Clipboard",
+  "description": "Sets text to the system clipboard",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "text"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "SetToClipboard",
+    "displayName": "Set To Clipboard",
+    "text": "\"Text to copy\""
+  }
+}

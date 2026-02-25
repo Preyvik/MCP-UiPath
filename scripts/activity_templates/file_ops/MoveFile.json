@@ -1,0 +1,15 @@
+{
+  "type": "MoveFile",
+  "displayName": "Move File",
+  "description": "Moves a file from source to destination",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "from", "to"],
+  "optionalAttributes": ["overwrite", "hintSize", "idRef"],
+  "template": {
+    "type": "MoveFile",
+    "displayName": "Move File",
+    "from": "\"C:\\\\Source\\\\File.txt\"",
+    "to": "\"C:\\\\Destination\\\\File.txt\"",
+    "overwrite": false
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "NCheckState",
+  "displayName": "Check State",
+  "description": "Checks or unchecks a checkbox or toggle element",
+  "namespace": "uix",
+  "requiredAttributes": ["displayName", "action"],
+  "optionalAttributes": ["target", "hintSize", "idRef"],
+  "template": {
+    "type": "NCheckState",
+    "displayName": "Check State",
+    "action": "Check",
+    "target": {
+      "TargetAnchorable": {
+        "Selector": "<ctrl name='Checkbox1' role='check box' />",
+        "Timeout": 30000
+      }
+    }
+  }
+}

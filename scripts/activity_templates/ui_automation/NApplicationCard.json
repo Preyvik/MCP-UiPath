@@ -1,0 +1,25 @@
+{
+  "type": "NApplicationCard",
+  "displayName": "Use Application/Browser",
+  "description": "Opens and manages an application or browser window",
+  "namespace": "uix",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["body", "target", "openMode", "close", "hintSize", "idRef"],
+  "template": {
+    "type": "NApplicationCard",
+    "displayName": "Use Application/Browser",
+    "openMode": "IfNotOpen",
+    "close": false,
+    "target": {
+      "TargetAnchorable": {
+        "Selector": "<wnd app='notepad.exe' cls='Notepad' />",
+        "Timeout": 30000
+      }
+    },
+    "body": {
+      "variableName": "ApplicationTag",
+      "variableType": "uix:IApplication",
+      "activity": null
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "type": "ReadTextFile",
+  "displayName": "Read Text File",
+  "description": "Reads all text from a file",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "fileName", "content"],
+  "optionalAttributes": ["encoding", "file", "hintSize", "idRef"],
+  "template": {
+    "type": "ReadTextFile",
+    "displayName": "Read Text File",
+    "fileName": "\"C:\\\\Path\\\\To\\\\File.txt\"",
+    "content": "fileContent",
+    "encoding": "UTF-8"
+  }
+}

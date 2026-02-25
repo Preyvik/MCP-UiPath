@@ -1,0 +1,13 @@
+{
+  "type": "SaveExcelFileX",
+  "displayName": "Save Excel File",
+  "description": "Saves changes to the Excel file",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "workbook"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "SaveExcelFileX",
+    "displayName": "Save Excel File",
+    "workbook": "[ExcelFileTag]"
+  }
+}

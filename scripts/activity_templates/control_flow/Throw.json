@@ -1,0 +1,14 @@
+{
+  "type": "Throw",
+  "displayName": "Throw",
+  "description": "Throws an exception to signal an error condition",
+  "namespace": "default",
+  "requiredAttributes": ["exception"],
+  "optionalAttributes": ["displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "Throw",
+    "displayName": "Throw",
+    "exception": "[New Exception(&quot;Error message&quot;)]"
+  },
+  "notes": "Common exception types: Exception, BusinessRuleException, ApplicationException. Use VB.NET New keyword."
+}

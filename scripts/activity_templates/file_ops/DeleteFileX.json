@@ -1,0 +1,13 @@
+{
+  "type": "DeleteFileX",
+  "displayName": "Delete File X",
+  "description": "Deletes a file at the specified path",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "path"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "DeleteFileX",
+    "displayName": "Delete File X",
+    "path": "\"C:\\\\Path\\\\To\\\\File.txt\""
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "type": "Catch",
+  "displayName": "Catch",
+  "description": "Catches and handles exceptions of a specific type within a Try Catch activity",
+  "namespace": "default",
+  "requiredAttributes": ["x:TypeArguments", "activityAction"],
+  "optionalAttributes": ["displayName", "hintSize", "idRef"],
+  "activityActionStructure": {
+    "required": ["x:TypeArguments", "argument", "handler"],
+    "argumentStructure": {
+      "required": ["type", "x:TypeArguments", "name"],
+      "description": "DelegateInArgument that receives the caught exception"
+    },
+    "handlerDescription": "The activity to execute when the exception is caught"
+  },
+  "template": {
+    "type": "Catch",
+    "x:TypeArguments": "s:Exception",
+    "activityAction": {
+      "x:TypeArguments": "s:Exception",
+      "argument": {
+        "type": "DelegateInArgument",
+        "x:TypeArguments": "s:Exception",
+        "name": "exception"
+      },
+      "handler": {
+        "type": "Sequence",
+        "displayName": "Catch Handler",
+        "activities": []
+      }
+    }
+  },
+  "scopingRules": {
+    "mustBeWithin": ["TryCatch.Catches"],
+    "description": "Must be within TryCatch.Catches collection"
+  },
+  "notes": "TypeArguments must match between Catch and ActivityAction. Common types: s:Exception, System.BusinessRuleException, System.ApplicationException. The activityAction must contain an argument (DelegateInArgument) and a handler (non-null activity)."
+}

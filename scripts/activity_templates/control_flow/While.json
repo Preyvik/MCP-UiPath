@@ -1,0 +1,14 @@
+{
+  "type": "While",
+  "displayName": "While",
+  "description": "Repeats activity while condition is true",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "condition"],
+  "optionalAttributes": ["body", "hintSize", "idRef"],
+  "template": {
+    "type": "While",
+    "displayName": "While",
+    "condition": "True",
+    "body": null
+  }
+}

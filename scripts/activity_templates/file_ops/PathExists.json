@@ -1,0 +1,15 @@
+{
+  "type": "PathExists",
+  "displayName": "Path Exists",
+  "description": "Checks if a file or directory exists",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "path"],
+  "optionalAttributes": ["pathType", "exists", "hintSize", "idRef"],
+  "template": {
+    "type": "PathExists",
+    "displayName": "Path Exists",
+    "path": "\"C:\\\\Path\\\\To\\\\Check\"",
+    "pathType": "Any",
+    "exists": "existsResult"
+  }
+}

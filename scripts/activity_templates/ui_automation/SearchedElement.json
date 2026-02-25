@@ -1,0 +1,16 @@
+{
+  "type": "SearchedElement",
+  "displayName": "Searched Element",
+  "description": "Configures element search parameters for UI automation",
+  "namespace": "uix",
+  "requiredAttributes": [],
+  "optionalAttributes": ["target", "timeout", "outUiElement"],
+  "template": {
+    "type": "SearchedElement",
+    "target": {
+      "Selector": "<webctrl tag='input' name='search' />",
+      "Timeout": 30000
+    },
+    "timeout": "00:00:30"
+  }
+}

@@ -1,0 +1,211 @@
+{
+  "metadata": {
+    "class": "Test3_FileProcessor",
+    "arguments": [
+      {
+        "name": "in_FolderPath",
+        "type": "InArgument(x:String)",
+        "default": null
+      },
+      {
+        "name": "out_ProcessedCount",
+        "type": "OutArgument(x:Int32)",
+        "default": null
+      }
+    ],
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "mscorlib"
+    ]
+  },
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Resilient File Processor",
+    "variables": [
+      {
+        "name": "fileList",
+        "type": "String[]",
+        "default": ""
+      },
+      {
+        "name": "processedCount",
+        "type": "Int32",
+        "default": "0"
+      },
+      {
+        "name": "keepProcessing",
+        "type": "Boolean",
+        "default": "True"
+      },
+      {
+        "name": "retryCount",
+        "type": "Int32",
+        "default": "0"
+      }
+    ],
+    "children": [
+      {
+        "type": "Assign",
+        "displayName": "Init Counter",
+        "to": {
+          "type": "String",
+          "value": "[processedCount]"
+        },
+        "value": {
+          "type": "Int32",
+          "value": "[0]"
+        }
+      },
+      {
+        "type": "ForEach",
+        "displayName": "Process Each File",
+        "typeArguments": "String",
+        "values": "[fileList]",
+        "body": {
+          "variableName": "currentFile",
+          "variableType": "String",
+          "activity": {
+            "type": "TryCatch",
+            "displayName": "Handle File Error",
+            "try": {
+              "type": "Sequence",
+              "displayName": "Process File Steps",
+              "children": [
+                {
+                  "type": "LogMessage",
+                  "displayName": "Log Processing",
+                  "level": "Info",
+                  "message": "[\"Processing: \" & currentFile]"
+                },
+                {
+                  "type": "Assign",
+                  "displayName": "Increment Counter",
+                  "to": {
+                    "type": "String",
+                    "value": "[processedCount]"
+                  },
+                  "value": {
+                    "type": "String",
+                    "value": "[processedCount + 1]"
+                  }
+                }
+              ]
+            },
+            "catches": [
+              {
+                "exceptionType": "Exception",
+                "variableName": "fileEx",
+                "handler": {
+                  "type": "LogMessage",
+                  "displayName": "Log File Error",
+                  "level": "Error",
+                  "message": "[\"Error processing \" & currentFile & \": \" & fileEx.Message]"
+                }
+              }
+            ],
+            "finally": null
+          }
+        }
+      },
+      {
+        "type": "While",
+        "displayName": "Retry Loop",
+        "condition": "[keepProcessing AndAlso retryCount < 3]",
+        "body": {
+          "type": "Sequence",
+          "displayName": "Retry Steps",
+          "children": [
+            {
+              "type": "Assign",
+              "displayName": "Increment Retry",
+              "to": {
+                "type": "String",
+                "value": "[retryCount]"
+              },
+              "value": {
+                "type": "String",
+                "value": "[retryCount + 1]"
+              }
+            },
+            {
+              "type": "If",
+              "displayName": "Check If Done",
+              "condition": "[retryCount >= 3]",
+              "then": {
+                "type": "Sequence",
+                "displayName": "Exit Loop",
+                "children": [
+                  {
+                    "type": "Assign",
+                    "displayName": "Stop Processing",
+                    "to": {
+                      "type": "String",
+                      "value": "[keepProcessing]"
+                    },
+                    "value": {
+                      "type": "Boolean",
+                      "value": "[False]"
+                    }
+                  },
+                  {
+                    "type": "Break",
+                    "displayName": "Break Out"
+                  }
+                ]
+              },
+              "else": null
+            }
+          ]
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Output",
+        "to": {
+          "type": "String",
+          "value": "[out_ProcessedCount]"
+        },
+        "value": {
+          "type": "String",
+          "value": "[processedCount]"
+        }
+      }
+    ]
+  }
+}

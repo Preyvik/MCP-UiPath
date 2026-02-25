@@ -1,0 +1,16 @@
+{
+  "type": "Switch",
+  "displayName": "Switch",
+  "description": "Branching based on expression value",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "expression", "typeArguments"],
+  "optionalAttributes": ["cases", "default", "hintSize", "idRef"],
+  "template": {
+    "type": "Switch",
+    "displayName": "Switch",
+    "expression": "switchVariable",
+    "typeArguments": "x:String",
+    "cases": {},
+    "default": null
+  }
+}

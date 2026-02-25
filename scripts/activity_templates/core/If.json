@@ -1,0 +1,15 @@
+{
+  "type": "If",
+  "displayName": "If",
+  "description": "Conditional branching based on boolean expression",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "condition"],
+  "optionalAttributes": ["then", "else", "hintSize", "idRef"],
+  "template": {
+    "type": "If",
+    "displayName": "If",
+    "condition": "True",
+    "then": null,
+    "else": null
+  }
+}

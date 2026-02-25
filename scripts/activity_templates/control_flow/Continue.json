@@ -1,0 +1,17 @@
+{
+  "type": "Continue",
+  "displayName": "Continue",
+  "description": "Skips the remaining activities in the current iteration and continues with the next iteration",
+  "namespace": "default",
+  "requiredAttributes": [],
+  "optionalAttributes": ["displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "Continue",
+    "displayName": "Continue"
+  },
+  "scopingRules": {
+    "mustBeWithin": ["ForEach", "ForEachRow", "While", "InterruptibleWhile"],
+    "description": "Must be used within loop activities"
+  },
+  "notes": "Similar to 'continue' in programming languages. Skips to next iteration of enclosing loop."
+}

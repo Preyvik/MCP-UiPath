@@ -1,0 +1,15 @@
+{
+  "type": "ReadRangeX",
+  "displayName": "Read Range",
+  "description": "Reads data from an Excel range into a DataTable",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "saveTo"],
+  "optionalAttributes": ["range", "hasHeaders", "hintSize", "idRef"],
+  "template": {
+    "type": "ReadRangeX",
+    "displayName": "Read Range",
+    "range": "\"A1\"",
+    "saveTo": "[dtOutput]",
+    "hasHeaders": true
+  }
+}

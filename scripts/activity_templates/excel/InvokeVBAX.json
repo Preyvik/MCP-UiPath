@@ -1,0 +1,26 @@
+{
+  "type": "InvokeVBAX",
+  "displayName": "Invoke VBA",
+  "description": "Invokes VBA code from an external file with optional arguments",
+  "namespace": "ueab",
+  "requiredAttributes": ["codeFilePath", "entryMethodName", "workbook"],
+  "optionalAttributes": ["result", "displayName", "body", "hintSize", "idRef"],
+  "template": {
+    "type": "InvokeVBAX",
+    "displayName": "Invoke VBA",
+    "codeFilePath": "path\\to\\code.txt",
+    "entryMethodName": "MethodName",
+    "workbook": "[Excel]",
+    "result": null,
+    "body": {
+      "activityAction": {
+        "activity": null
+      }
+    }
+  },
+  "scopingRules": {
+    "mustBeWithin": ["ExcelApplicationCard", "ExcelProcessScopeX"],
+    "description": "Must be within Excel file and process scopes. Arguments passed via InvokeVBAArgumentX in body."
+  },
+  "notes": "CodeFilePath can be relative or absolute. Use InvokeVBAArgumentX activities in body to pass arguments in order."
+}

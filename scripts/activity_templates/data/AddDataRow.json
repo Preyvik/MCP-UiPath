@@ -1,0 +1,14 @@
+{
+  "type": "AddDataRow",
+  "displayName": "Add Data Row",
+  "description": "Adds a row to a DataTable",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "dataTable"],
+  "optionalAttributes": ["arrayRow", "dataRow", "hintSize", "idRef"],
+  "template": {
+    "type": "AddDataRow",
+    "displayName": "Add Data Row",
+    "dataTable": "dtTable",
+    "arrayRow": "[New Object() {\"Value1\", \"Value2\"}]"
+  }
+}

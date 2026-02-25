@@ -1,0 +1,13 @@
+{
+  "type": "CommentOut",
+  "displayName": "Comment Out",
+  "description": "Comments out activities (they won't execute)",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["body", "hintSize", "idRef"],
+  "template": {
+    "type": "CommentOut",
+    "displayName": "Comment Out",
+    "body": null
+  }
+}

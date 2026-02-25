@@ -1,0 +1,17 @@
+{
+  "type": "Break",
+  "displayName": "Break",
+  "description": "Exits the current loop immediately",
+  "namespace": "default",
+  "requiredAttributes": [],
+  "optionalAttributes": ["displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "Break",
+    "displayName": "Break"
+  },
+  "scopingRules": {
+    "mustBeWithin": ["ForEach", "ForEachRow", "While", "InterruptibleWhile"],
+    "description": "Must be used within loop activities"
+  },
+  "notes": "Similar to 'break' in programming languages. Exits the enclosing loop immediately."
+}

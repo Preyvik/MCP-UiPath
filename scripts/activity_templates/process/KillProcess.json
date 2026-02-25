@@ -1,0 +1,13 @@
+{
+  "type": "KillProcess",
+  "displayName": "Kill Process",
+  "description": "Terminates a running process by name",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "processName"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "KillProcess",
+    "displayName": "Kill Process",
+    "processName": "\"notepad\""
+  }
+}

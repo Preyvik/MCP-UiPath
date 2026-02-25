@@ -1,0 +1,15 @@
+{
+  "type": "TryCatch",
+  "displayName": "Try Catch",
+  "description": "Exception handling with try, catch, and finally blocks",
+  "namespace": "default",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["try", "catches", "finally", "hintSize", "idRef"],
+  "template": {
+    "type": "TryCatch",
+    "displayName": "Try Catch",
+    "try": null,
+    "catches": [],
+    "finally": null
+  }
+}

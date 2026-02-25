@@ -1,0 +1,19 @@
+{
+  "type": "ForEach",
+  "displayName": "For Each",
+  "description": "Iterates over a collection of items",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "values", "typeArguments"],
+  "optionalAttributes": ["body", "hintSize", "idRef"],
+  "template": {
+    "type": "ForEach",
+    "displayName": "For Each",
+    "values": "collectionVariable",
+    "typeArguments": "x:String",
+    "body": {
+      "variableName": "item",
+      "variableType": "x:String",
+      "activity": null
+    }
+  }
+}

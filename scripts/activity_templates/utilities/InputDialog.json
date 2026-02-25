@@ -1,0 +1,23 @@
+{
+  "type": "InputDialog",
+  "displayName": "Input Dialog",
+  "description": "Displays a dialog to get user input with optional dropdown options",
+  "namespace": "ui",
+  "requiredAttributes": ["label", "title"],
+  "optionalAttributes": ["options", "optionsString", "isPassword", "topMost", "result", "displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "InputDialog",
+    "displayName": "Input Dialog",
+    "label": "Enter value:",
+    "title": "Input Required",
+    "isPassword": false,
+    "topMost": false,
+    "result": {
+      "outArgument": {
+        "x:TypeArguments": "x:Object",
+        "value": "[userInput]"
+      }
+    }
+  },
+  "notes": "Use Options for dropdown (array variable). Use OptionsString for comma-separated values. Result is always x:Object type."
+}

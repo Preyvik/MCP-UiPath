@@ -1,0 +1,17 @@
+{
+  "type": "ExcelProcessScopeX",
+  "displayName": "Use Excel Process Scope",
+  "description": "Manages Excel application lifecycle",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["body", "displayAlerts", "existingProcessAction", "hintSize", "idRef"],
+  "template": {
+    "type": "ExcelProcessScopeX",
+    "displayName": "Use Excel Process Scope",
+    "body": {
+      "variableName": "ExcelProcessScopeTag",
+      "variableType": "ui:IExcelProcess",
+      "activity": null
+    }
+  }
+}

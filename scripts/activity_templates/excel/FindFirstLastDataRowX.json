@@ -1,0 +1,16 @@
+{
+  "type": "FindFirstLastDataRowX",
+  "displayName": "Find First Last Data Row",
+  "description": "Finds the first and/or last data row in an Excel range",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "range"],
+  "optionalAttributes": ["columnName", "firstRowIndex", "lastRowIndex", "hintSize", "idRef"],
+  "template": {
+    "type": "FindFirstLastDataRowX",
+    "displayName": "Find First Last Data Row",
+    "range": "[Excel.Sheet(\"Sheet1\").Range(\"A:A\")]",
+    "columnName": null,
+    "firstRowIndex": "[firstRow]",
+    "lastRowIndex": "[lastRow]"
+  }
+}

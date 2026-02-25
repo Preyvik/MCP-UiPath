@@ -1,0 +1,15 @@
+{
+  "type": "WriteCellX",
+  "displayName": "Write Cell",
+  "description": "Writes a value to a specific cell",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "sheetName", "cell", "value"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "WriteCellX",
+    "displayName": "Write Cell",
+    "sheetName": "\"Sheet1\"",
+    "cell": "\"A1\"",
+    "value": "\"Cell Value\""
+  }
+}

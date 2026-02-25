@@ -1,0 +1,16 @@
+{
+  "type": "FilterX",
+  "displayName": "Filter Range",
+  "description": "Applies a filter to an Excel range",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "range", "columnName"],
+  "optionalAttributes": ["filterArgument", "clearFilter", "hintSize", "idRef"],
+  "template": {
+    "type": "FilterX",
+    "displayName": "Filter Range",
+    "range": "[Excel.Sheet(\"Sheet1\").Range(\"A1:E100\")]",
+    "columnName": "\"Status\"",
+    "filterArgument": "\"Active\"",
+    "clearFilter": false
+  }
+}

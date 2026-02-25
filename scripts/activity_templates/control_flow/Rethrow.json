@@ -1,0 +1,12 @@
+{
+  "type": "Rethrow",
+  "displayName": "Rethrow",
+  "description": "Re-throws the current exception in a catch block",
+  "namespace": "default",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "Rethrow",
+    "displayName": "Rethrow"
+  }
+}

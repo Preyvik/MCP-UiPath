@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "class": "Test1_DataValidation",
+    "arguments": [
+      {
+        "name": "in_RawName",
+        "type": "InArgument(x:String)",
+        "default": null
+      },
+      {
+        "name": "in_RawAge",
+        "type": "InArgument(x:Int32)",
+        "default": null
+      },
+      {
+        "name": "out_IsValid",
+        "type": "OutArgument(x:Boolean)",
+        "default": null
+      }
+    ],
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "mscorlib"
+    ]
+  },
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Data Validation Pipeline",
+    "variables": [
+      {
+        "name": "cleanName",
+        "type": "String",
+        "default": ""
+      },
+      {
+        "name": "validAge",
+        "type": "Int32",
+        "default": "0"
+      },
+      {
+        "name": "score",
+        "type": "Double",
+        "default": "0.0"
+      },
+      {
+        "name": "isActive",
+        "type": "Boolean",
+        "default": "False"
+      },
+      {
+        "name": "itemCount",
+        "type": "Int32",
+        "default": "0"
+      }
+    ],
+    "children": [
+      {
+        "type": "LogMessage",
+        "displayName": "Log Start",
+        "level": "Info",
+        "message": "[\"Starting data validation for: \" & in_RawName]"
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Clean Name (String)",
+        "to": {
+          "type": "String",
+          "value": "[cleanName]"
+        },
+        "value": {
+          "type": "String",
+          "value": "[in_RawName.Trim.ToUpper]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Valid Age (Int32)",
+        "to": {
+          "type": "String",
+          "value": "[validAge]"
+        },
+        "value": {
+          "type": "String",
+          "value": "[in_RawAge]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Score (Double)",
+        "to": {
+          "type": "String",
+          "value": "[score]"
+        },
+        "value": {
+          "type": "Double",
+          "value": "[85.5]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Active (Boolean)",
+        "to": {
+          "type": "String",
+          "value": "[isActive]"
+        },
+        "value": {
+          "type": "Boolean",
+          "value": "[True]"
+        }
+      },
+      {
+        "type": "Assign",
+        "displayName": "Set Item Count (Int32)",
+        "to": {
+          "type": "String",
+          "value": "[itemCount]"
+        },
+        "value": {
+          "type": "Int32",
+          "value": "[42]"
+        }
+      },
+      {
+        "type": "LogMessage",
+        "displayName": "Log Validation Result",
+        "level": "Info",
+        "message": "[\"Validation complete. Name=\" & cleanName & \", Age=\" & validAge.ToString & \", Score=\" & score.ToString]"
+      }
+    ]
+  }
+}

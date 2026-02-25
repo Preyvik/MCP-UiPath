@@ -1,0 +1,17 @@
+{
+  "type": "RetryScope",
+  "displayName": "Retry Scope",
+  "description": "Retries the contained activity on failure",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["numberOfRetries", "activityBody", "condition", "logRetriedExceptions", "retriedExceptionsLogLevel", "hintSize", "idRef"],
+  "template": {
+    "type": "RetryScope",
+    "displayName": "Retry Scope",
+    "numberOfRetries": 3,
+    "activityBody": null,
+    "condition": null,
+    "logRetriedExceptions": true,
+    "retriedExceptionsLogLevel": "Warn"
+  }
+}

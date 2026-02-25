@@ -1,0 +1,15 @@
+{
+  "type": "Parallel",
+  "displayName": "Parallel",
+  "description": "Executes multiple activities concurrently in parallel branches",
+  "namespace": "default",
+  "requiredAttributes": [],
+  "optionalAttributes": ["displayName", "completionCondition", "branches", "hintSize", "idRef"],
+  "template": {
+    "type": "Parallel",
+    "displayName": "Parallel",
+    "completionCondition": null,
+    "branches": []
+  },
+  "notes": "Each child activity runs as a separate branch. CompletionCondition can terminate all branches early when true."
+}

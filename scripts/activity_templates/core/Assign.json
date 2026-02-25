@@ -1,0 +1,14 @@
+{
+  "type": "Assign",
+  "displayName": "Assign",
+  "description": "Assigns a value to a variable or argument",
+  "namespace": "default",
+  "requiredAttributes": ["displayName", "to", "value"],
+  "optionalAttributes": ["hintSize", "idRef"],
+  "template": {
+    "type": "Assign",
+    "displayName": "Assign",
+    "to": "variableName",
+    "value": "\"value\""
+  }
+}

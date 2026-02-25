@@ -1,0 +1,17 @@
+{
+  "type": "ReadRange",
+  "displayName": "Read Range (Workbook)",
+  "description": "Reads data from a workbook file range",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "workbookPath", "sheetName", "dataTable"],
+  "optionalAttributes": ["range", "addHeaders", "hintSize", "idRef"],
+  "template": {
+    "type": "ReadRange",
+    "displayName": "Read Range (Workbook)",
+    "workbookPath": "\"C:\\\\Path\\\\To\\\\File.xlsx\"",
+    "sheetName": "\"Sheet1\"",
+    "range": "\"A1\"",
+    "dataTable": "dtOutput",
+    "addHeaders": true
+  }
+}

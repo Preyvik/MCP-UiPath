@@ -1,0 +1,25 @@
+{
+  "type": "ExecuteMacroX",
+  "displayName": "Execute Macro",
+  "description": "Executes a VBA macro in an Excel workbook",
+  "namespace": "ueab",
+  "requiredAttributes": ["macroName", "workbook"],
+  "optionalAttributes": ["result", "displayName", "body", "hintSize", "idRef"],
+  "template": {
+    "type": "ExecuteMacroX",
+    "displayName": "Execute Macro",
+    "macroName": "'Workbook.xlsm'!MacroName",
+    "workbook": "[Excel]",
+    "result": null,
+    "body": {
+      "activityAction": {
+        "activity": null
+      }
+    }
+  },
+  "scopingRules": {
+    "mustBeWithin": ["ExcelApplicationCard", "ExcelProcessScopeX"],
+    "description": "Must be within Excel file scope (ExcelApplicationCard) and process scope (ExcelProcessScopeX)"
+  },
+  "notes": "MacroName format: 'WorkbookName.xlsm'!macroName. Workbook variable comes from ExcelApplicationCard scope."
+}

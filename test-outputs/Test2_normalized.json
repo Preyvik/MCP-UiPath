@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "class": "Test2_OrderRouter",
+    "arguments": [
+      {
+        "name": "in_OrderType",
+        "type": "InArgument(x:String)",
+        "default": null
+      },
+      {
+        "name": "in_Priority",
+        "type": "InArgument(x:Int32)",
+        "default": null
+      },
+      {
+        "name": "out_RoutedTo",
+        "type": "OutArgument(x:String)",
+        "default": null
+      }
+    ],
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "mscorlib"
+    ]
+  },
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Order Router",
+    "children": [
+      {
+        "type": "LogMessage",
+        "displayName": "Log Incoming Order",
+        "level": "Info",
+        "message": "[\"Routing order of type: \" & in_OrderType]"
+      },
+      {
+        "type": "Switch",
+        "displayName": "Route by Order Type",
+        "typeArguments": "String",
+        "expression": "[in_OrderType]",
+        "cases": {
+          "Express": {
+            "type": "Sequence",
+            "displayName": "Handle Express",
+            "activities": [
+              {
+                "type": "Assign",
+                "displayName": "Route to Express",
+                "to": {
+                  "type": "String",
+                  "value": "[out_RoutedTo]"
+                },
+                "value": {
+                  "type": "String",
+                  "value": "[\"Express Lane\"]"
+                }
+              },
+              {
+                "type": "LogMessage",
+                "displayName": "Log Express",
+                "level": "Info",
+                "message": "[\"Routed to Express Lane\"]"
+              }
+            ]
+          },
+          "Standard": {
+            "type": "Sequence",
+            "displayName": "Handle Standard",
+            "activities": [
+              {
+                "type": "Assign",
+                "displayName": "Route to Standard",
+                "to": {
+                  "type": "String",
+                  "value": "[out_RoutedTo]"
+                },
+                "value": {
+                  "type": "String",
+                  "value": "[\"Standard Queue\"]"
+                }
+              }
+            ]
+          },
+          "Bulk": {
+            "type": "LogMessage",
+            "displayName": "Log Bulk",
+            "level": "Info",
+            "message": "[\"Bulk order received\"]"
+          }
+        },
+        "default": {
+          "type": "LogMessage",
+          "displayName": "Log Unknown",
+          "level": "Warn",
+          "message": "[\"Unknown order type: \" & in_OrderType]"
+        }
+      },
+      {
+        "type": "If",
+        "displayName": "Check Priority",
+        "condition": "[in_Priority > 5]",
+        "then": {
+          "type": "LogMessage",
+          "displayName": "Log High Priority",
+          "level": "Warn",
+          "message": "[\"HIGH PRIORITY order detected\"]"
+        },
+        "else": {
+          "type": "LogMessage",
+          "displayName": "Log Normal Priority",
+          "level": "Info",
+          "message": "[\"Normal priority order\"]"
+        }
+      }
+    ]
+  }
+}

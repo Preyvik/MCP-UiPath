@@ -1,0 +1,18 @@
+{
+  "type": "ExcelApplicationCard",
+  "displayName": "Use Excel File",
+  "description": "Opens and works with an Excel file",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "workbookPath"],
+  "optionalAttributes": ["body", "createIfNotExists", "password", "readOnly", "hintSize", "idRef"],
+  "template": {
+    "type": "ExcelApplicationCard",
+    "displayName": "Use Excel File",
+    "workbookPath": "\"C:\\\\Path\\\\To\\\\File.xlsx\"",
+    "body": {
+      "variableName": "ExcelFileTag",
+      "variableType": "ui:IExcelFile",
+      "activity": null
+    }
+  }
+}

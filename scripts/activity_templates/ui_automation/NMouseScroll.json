@@ -1,0 +1,19 @@
+{
+  "type": "NMouseScroll",
+  "displayName": "Mouse Scroll",
+  "description": "Scrolls within a UI element using mouse wheel",
+  "namespace": "uix",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["target", "direction", "amount", "movementUnits", "searchedElement", "hintSize", "idRef"],
+  "template": {
+    "type": "NMouseScroll",
+    "displayName": "Mouse Scroll",
+    "direction": "Down",
+    "amount": 3,
+    "movementUnits": "Lines",
+    "target": {
+      "Selector": "<webctrl tag='div' class='scroll-container' />",
+      "Timeout": 30000
+    }
+  }
+}

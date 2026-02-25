@@ -1,0 +1,16 @@
+{
+  "type": "Flowchart",
+  "displayName": "Flowchart",
+  "description": "Flowchart-based workflow container with visual node-based execution flow",
+  "namespace": "default",
+  "requiredAttributes": ["displayName"],
+  "optionalAttributes": ["startNode", "nodes", "variables", "hintSize", "idRef"],
+  "template": {
+    "type": "Flowchart",
+    "displayName": "Flowchart",
+    "startNode": null,
+    "nodes": [],
+    "variables": []
+  },
+  "notes": "StartNode must reference the first FlowStep via <x:Reference>. Nodes include FlowStep and FlowDecision elements."
+}

@@ -1,0 +1,163 @@
+{
+  "metadata": {
+    "class": "Test4_ExcelReport",
+    "namespaces": [
+      "Microsoft.VisualBasic",
+      "Microsoft.VisualBasic.Activities",
+      "System",
+      "System.Activities",
+      "System.Activities.Expressions",
+      "System.Activities.Statements",
+      "System.Activities.Validation",
+      "System.Activities.XamlIntegration",
+      "System.Collections",
+      "System.Collections.Generic",
+      "System.Collections.ObjectModel",
+      "System.Data",
+      "System.Diagnostics",
+      "System.Drawing",
+      "System.IO",
+      "System.Linq",
+      "System.Net.Mail",
+      "System.Windows",
+      "System.Windows.Markup",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.Core",
+      "UiPath.Core.Activities",
+      "UiPath.Excel",
+      "UiPath.Excel.Activities",
+      "UiPath.Excel.Model"
+    ],
+    "assemblyReferences": [
+      "Microsoft.VisualBasic",
+      "System",
+      "System.Activities",
+      "System.Core",
+      "System.Data",
+      "System.Drawing",
+      "System.Linq",
+      "System.Private.CoreLib",
+      "System.Xml",
+      "System.Xml.Linq",
+      "UiPath.System.Activities",
+      "UiPath.Excel.Activities",
+      "mscorlib"
+    ],
+    "arguments": [
+      {
+        "name": "in_ExcelPath",
+        "type": "InArgument(x:String)",
+        "default": null
+      },
+      {
+        "name": "in_SheetName",
+        "type": "InArgument(x:String)",
+        "default": null
+      },
+      {
+        "name": "out_RowCount",
+        "type": "OutArgument(x:Int32)",
+        "default": null
+      }
+    ]
+  },
+  "variables": [],
+  "workflow": {
+    "type": "Sequence",
+    "displayName": "Excel Report Generator",
+    "variables": [
+      {
+        "name": "dtReport",
+        "type": "DataTable",
+        "default": ""
+      },
+      {
+        "name": "rowCount",
+        "type": "Int32",
+        "default": "0"
+      }
+    ],
+    "children": [
+      {
+        "type": "LogMessage",
+        "displayName": "Log Start",
+        "level": "Info",
+        "message": "[\"Opening Excel: \" & in_ExcelPath]"
+      },
+      {
+        "type": "If",
+        "displayName": "Validate Path",
+        "condition": "[String.IsNullOrEmpty(in_ExcelPath)]",
+        "then": {
+          "type": "Throw",
+          "displayName": "Throw Missing Path",
+          "exceptionType": "ArgumentException",
+          "message": "[\"Excel path cannot be empty\"]"
+        },
+        "else": {
+          "type": "Sequence",
+          "displayName": "Process Excel",
+          "children": [
+            {
+              "type": "ExcelProcessScopeX",
+              "displayName": "Excel Scope",
+              "excelFilePath": "[in_ExcelPath]",
+              "children": [
+                {
+                  "type": "ReadRangeX",
+                  "displayName": "Read Report Data",
+                  "sheetName": "[in_SheetName]",
+                  "range": "[\"A1\"]",
+                  "outputDataTable": "[dtReport]"
+                },
+                {
+                  "type": "WriteRangeX",
+                  "displayName": "Write Summary",
+                  "sheetName": "[\"Summary\"]",
+                  "startingCell": "[\"A1\"]",
+                  "dataTable": "[dtReport]"
+                }
+              ]
+            },
+            {
+              "type": "Assign",
+              "displayName": "Set Row Count",
+              "to": {
+                "type": "Int32",
+                "value": "[rowCount]"
+              },
+              "value": {
+                "type": "Int32",
+                "value": "[dtReport.Rows.Count]"
+              }
+            },
+            {
+              "type": "Delay",
+              "displayName": "Wait Before Closing",
+              "duration": "[TimeSpan.FromSeconds(2)]"
+            },
+            {
+              "type": "Assign",
+              "displayName": "Set Output",
+              "to": {
+                "type": "Int32",
+                "value": "[out_RowCount]"
+              },
+              "value": {
+                "type": "Int32",
+                "value": "[rowCount]"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "LogMessage",
+        "displayName": "Log Complete",
+        "level": "Info",
+        "message": "[\"Report generation complete. Rows: \" & rowCount.ToString]"
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "type": "ForEachRow",
+  "displayName": "For Each Row in Data Table",
+  "description": "Iterates over each row in a DataTable",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "dataTable"],
+  "optionalAttributes": ["body", "hintSize", "idRef"],
+  "template": {
+    "type": "ForEachRow",
+    "displayName": "For Each Row in Data Table",
+    "dataTable": "dataTableVariable",
+    "body": {
+      "variableName": "CurrentRow",
+      "variableType": "System.Data.DataRow",
+      "activity": null
+    }
+  }
+}

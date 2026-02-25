@@ -1,0 +1,20 @@
+{
+  "type": "NTypeInto",
+  "displayName": "Type Into",
+  "description": "Types text into a UI element",
+  "namespace": "uix",
+  "requiredAttributes": ["displayName", "text"],
+  "optionalAttributes": ["target", "emptyField", "delayBetweenKeys", "hintSize", "idRef"],
+  "template": {
+    "type": "NTypeInto",
+    "displayName": "Type Into",
+    "text": "\"Text to type\"",
+    "emptyField": true,
+    "target": {
+      "TargetAnchorable": {
+        "Selector": "<ctrl name='TextBox1' role='editable text' />",
+        "Timeout": 30000
+      }
+    }
+  }
+}

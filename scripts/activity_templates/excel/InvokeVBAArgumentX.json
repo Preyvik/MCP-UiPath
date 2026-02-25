@@ -1,0 +1,18 @@
+{
+  "type": "InvokeVBAArgumentX",
+  "displayName": "Invoke VBA Argument",
+  "description": "Passes an argument to an Excel VBA macro invocation",
+  "namespace": "ueab",
+  "requiredAttributes": ["argumentValue"],
+  "optionalAttributes": ["displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "InvokeVBAArgumentX",
+    "displayName": "Arg1",
+    "argumentValue": "[argumentValue]"
+  },
+  "scopingRules": {
+    "mustBeWithin": ["InvokeVBAX.Body", "ExcelApplicationCard", "ExcelProcessScopeX"],
+    "description": "Must be inside InvokeVBAX activity body, within Excel file and process scopes"
+  },
+  "notes": "Arguments are passed in order. Use multiple InvokeVBAArgumentX activities for multiple parameters."
+}

@@ -1,0 +1,21 @@
+{
+  "type": "InvokeCode",
+  "displayName": "Invoke Code",
+  "description": "Executes custom VB.NET code with optional input/output arguments",
+  "namespace": "ui",
+  "requiredAttributes": ["code"],
+  "optionalAttributes": ["continueOnError", "displayName", "arguments", "hintSize", "idRef"],
+  "template": {
+    "type": "InvokeCode",
+    "displayName": "Invoke Code",
+    "code": "' VB.NET code here",
+    "continueOnError": false,
+    "arguments": []
+  },
+  "argumentTypes": {
+    "InArgument": "Input argument (read-only in code)",
+    "OutArgument": "Output argument (write-only in code)",
+    "InOutArgument": "Input/Output argument (read/write in code)"
+  },
+  "notes": "Use &#xA; for newlines in code. Arguments: InArgument (input), OutArgument (output), InOutArgument (both). Each argument needs x:TypeArguments and x:Key."
+}

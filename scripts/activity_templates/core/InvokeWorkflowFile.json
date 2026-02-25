@@ -1,0 +1,14 @@
+{
+  "type": "InvokeWorkflowFile",
+  "displayName": "Invoke Workflow File",
+  "description": "Invokes another workflow file with arguments",
+  "namespace": "ui",
+  "requiredAttributes": ["displayName", "workflowFileName"],
+  "optionalAttributes": ["arguments", "hintSize", "idRef", "isolated"],
+  "template": {
+    "type": "InvokeWorkflowFile",
+    "displayName": "Invoke Workflow File",
+    "workflowFileName": "Workflow.xaml",
+    "arguments": []
+  }
+}

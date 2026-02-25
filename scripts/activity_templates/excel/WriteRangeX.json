@@ -1,0 +1,16 @@
+{
+  "type": "WriteRangeX",
+  "displayName": "Write Range",
+  "description": "Writes a DataTable to an Excel range",
+  "namespace": "ueab",
+  "requiredAttributes": ["displayName", "sheetName", "inputDataTable"],
+  "optionalAttributes": ["startingCell", "hasHeaders", "hintSize", "idRef"],
+  "template": {
+    "type": "WriteRangeX",
+    "displayName": "Write Range",
+    "sheetName": "\"Sheet1\"",
+    "startingCell": "\"A1\"",
+    "inputDataTable": "dtInput",
+    "hasHeaders": true
+  }
+}

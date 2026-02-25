@@ -1,0 +1,19 @@
+{
+  "type": "ClearRangeX",
+  "displayName": "Clear Range",
+  "description": "Clears the contents of a specified Excel range",
+  "namespace": "ueab",
+  "requiredAttributes": ["targetRange"],
+  "optionalAttributes": ["hasHeaders", "displayName", "hintSize", "idRef"],
+  "template": {
+    "type": "ClearRangeX",
+    "displayName": "Clear Range",
+    "targetRange": "[Excel.Sheet(&quot;Sheet1&quot;).Range(&quot;A1:B10&quot;)]",
+    "hasHeaders": false
+  },
+  "scopingRules": {
+    "mustBeWithin": ["ExcelApplicationCard", "ExcelProcessScopeX"],
+    "description": "Must be within Excel file and process scopes"
+  },
+  "notes": "TargetRange uses Excel workbook variable (e.g., Excel) from ExcelApplicationCard scope. HasHeaders=true preserves header row."
+}
