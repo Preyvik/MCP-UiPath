@@ -7045,10 +7045,10 @@ class XamlEditor:
         """Extract all xmlns declarations from the root element of a XAML file."""
         xmlns_map = {}
         try:
-            with open(xaml_path, 'r', encoding='utf-8') as f:
+            with open(xaml_path, 'r', encoding='utf-8-sig') as f:
                 content = f.read()
-            # Match the opening <Activity ...> tag
-            match = re.match(r'<\?xml[^?]*\?>\s*<(\S+)\s+([\s\S]*?)>', content)
+            # Match the opening <Activity ...> tag (handle optional BOM)
+            match = re.match(r'\ufeff?<\?xml[^?]*\?>\s*<(\S+)\s+([\s\S]*?)>', content)
             if match:
                 attrs_str = match.group(2)
                 # Extract all xmlns attributes
@@ -7061,11 +7061,11 @@ class XamlEditor:
     @staticmethod
     def _restore_xmlns(xaml_path: str, original_xmlns: Dict[str, str]):
         """Restore missing xmlns declarations to the root element after tree.write()."""
-        with open(xaml_path, 'r', encoding='utf-8') as f:
+        with open(xaml_path, 'r', encoding='utf-8-sig') as f:
             content = f.read()
 
-        # Find the root element opening tag
-        match = re.match(r'(<\?xml[^?]*\?>\s*<\S+)\s([\s\S]*?)(>)', content)
+        # Find the root element opening tag (handle optional BOM)
+        match = re.match(r'\ufeff?(<\?xml[^?]*\?>\s*<\S+)\s([\s\S]*?)(>)', content)
         if not match:
             return
 
