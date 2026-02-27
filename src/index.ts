@@ -7,6 +7,7 @@ import { registerReadWorkflow } from "./tools/read-workflow.js";
 import { registerWriteWorkflow } from "./tools/write-workflow.js";
 import { registerValidateWorkflow } from "./tools/validate-workflow.js";
 import { registerCreateWorkflow } from "./tools/create-workflow.js";
+import { registerEditWorkflow } from "./tools/edit-workflow.js";
 
 const server = new McpServer({
   name: "mcp-uipath",
@@ -21,6 +22,7 @@ registerReadWorkflow(server);
 registerWriteWorkflow(server);
 registerValidateWorkflow(server);
 registerCreateWorkflow(server);
+registerEditWorkflow(server);
 
 // Start server with stdio transport
 async function main() {

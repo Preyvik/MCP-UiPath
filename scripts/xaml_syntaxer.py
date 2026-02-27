@@ -6909,6 +6909,358 @@ class XamlConstructor:
 
 
 # =============================================================================
+# XAML Editor — surgical in-place XML mutations
+# =============================================================================
+
+class XamlEditor:
+    """Edit UiPath XAML files in-place at the XML ElementTree level.
+
+    Supports targeted mutations (set attribute, add/remove variable, remove activity)
+    while preserving ViewState, IdRef assignments, attribute ordering, and all other
+    untouched elements exactly as they were.
+    """
+
+    # sap2010:WorkflowViewState.IdRef attribute (fully qualified)
+    IDREF_ATTR = f'{{{NAMESPACES["sap2010"]}}}WorkflowViewState.IdRef'
+
+    def edit_file(self, xaml_path: str, edits: List[Dict]) -> Dict:
+        """Apply a list of edit operations to a XAML file.
+
+        Atomic: if any edit fails, the file is NOT modified.
+
+        Args:
+            xaml_path: Path to the .xaml file to edit in-place.
+            edits: List of edit operation dicts.
+
+        Returns:
+            {success: bool, changes: list, warnings: list, error: str?}
+        """
+        setup_namespaces()
+
+        # Capture original xmlns declarations before parsing (ElementTree drops unused ones)
+        original_xmlns = self._capture_xmlns(xaml_path)
+
+        try:
+            tree = ET.parse(xaml_path)
+        except ET.ParseError as e:
+            return {'success': False, 'changes': [], 'warnings': [], 'error': f'XML parse error: {e}'}
+
+        root = tree.getroot()
+        changes = []
+        warnings = []
+
+        for i, edit in enumerate(edits):
+            action = edit.get('action')
+            if not action:
+                return {
+                    'success': False, 'changes': changes, 'warnings': warnings,
+                    'error': f'Edit #{i}: missing "action" field',
+                }
+
+            try:
+                if action == 'set_attribute':
+                    result = self._set_attribute(root, edit)
+                elif action == 'remove_variable':
+                    result = self._remove_variable(root, edit)
+                elif action == 'add_variable':
+                    result = self._add_variable(root, edit)
+                elif action == 'remove_activity':
+                    result = self._remove_activity(root, edit)
+                else:
+                    return {
+                        'success': False, 'changes': changes, 'warnings': warnings,
+                        'error': f'Edit #{i}: unknown action "{action}"',
+                    }
+            except Exception as e:
+                return {
+                    'success': False, 'changes': changes, 'warnings': warnings,
+                    'error': f'Edit #{i} ({action}): {e}',
+                }
+
+            if result.get('error'):
+                return {
+                    'success': False, 'changes': changes, 'warnings': warnings,
+                    'error': f'Edit #{i} ({action}): {result["error"]}',
+                }
+
+            changes.append(result)
+            if result.get('warning'):
+                warnings.append(result['warning'])
+
+        # All edits succeeded — write back
+        tree.write(xaml_path, encoding='utf-8', xml_declaration=True)
+
+        # Restore any xmlns declarations that ElementTree dropped
+        if original_xmlns:
+            self._restore_xmlns(xaml_path, original_xmlns)
+
+        return {'success': True, 'changes': changes, 'warnings': warnings}
+
+    # ------------------------------------------------------------------
+    # Namespace preservation helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _capture_xmlns(xaml_path: str) -> Dict[str, str]:
+        """Extract all xmlns declarations from the root element of a XAML file."""
+        xmlns_map = {}
+        try:
+            with open(xaml_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            # Match the opening <Activity ...> tag
+            match = re.match(r'<\?xml[^?]*\?>\s*<(\S+)\s+([\s\S]*?)>', content)
+            if match:
+                attrs_str = match.group(2)
+                # Extract all xmlns attributes
+                for m in re.finditer(r'(xmlns(?::\w+)?)="([^"]*)"', attrs_str):
+                    xmlns_map[m.group(1)] = m.group(2)
+        except Exception:
+            pass
+        return xmlns_map
+
+    @staticmethod
+    def _restore_xmlns(xaml_path: str, original_xmlns: Dict[str, str]):
+        """Restore missing xmlns declarations to the root element after tree.write()."""
+        with open(xaml_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        # Find the root element opening tag
+        match = re.match(r'(<\?xml[^?]*\?>\s*<\S+)\s([\s\S]*?)(>)', content)
+        if not match:
+            return
+
+        tag_start = match.group(1)
+        attrs_str = match.group(2)
+        tag_end = match.group(3)
+
+        # Collect current xmlns declarations
+        current_xmlns = {}
+        for m in re.finditer(r'(xmlns(?::\w+)?)="([^"]*)"', attrs_str):
+            current_xmlns[m.group(1)] = m.group(2)
+
+        # Find missing declarations
+        missing = {k: v for k, v in original_xmlns.items() if k not in current_xmlns}
+        if not missing:
+            return
+
+        # Insert missing xmlns declarations right after the existing ones
+        extra_attrs = ' '.join(f'{k}="{v}"' for k, v in sorted(missing.items()))
+        new_tag = f'{tag_start} {attrs_str} {extra_attrs}{tag_end}'
+        content = new_tag + content[match.end():]
+
+        with open(xaml_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    # ------------------------------------------------------------------
+    # Element finding
+    # ------------------------------------------------------------------
+
+    def _find_element(self, root: ET.Element, display_name: str = None,
+                      id_ref: str = None) -> Optional[ET.Element]:
+        """Find an element by DisplayName or IdRef."""
+        for elem in root.iter():
+            if display_name and elem.get('DisplayName') == display_name:
+                return elem
+            if id_ref and elem.get(self.IDREF_ATTR) == id_ref:
+                return elem
+        return None
+
+    def _find_element_with_parent(self, root: ET.Element, display_name: str = None,
+                                   id_ref: str = None) -> Tuple[Optional[ET.Element], Optional[ET.Element]]:
+        """Find an element and its parent by DisplayName or IdRef.
+
+        Returns (parent, element) or (None, None) if not found.
+        """
+        parent_map = {child: parent for parent in root.iter() for child in parent}
+        for elem in root.iter():
+            match = False
+            if display_name and elem.get('DisplayName') == display_name:
+                match = True
+            if id_ref and elem.get(self.IDREF_ATTR) == id_ref:
+                match = True
+            if match:
+                parent = parent_map.get(elem)
+                return parent, elem
+        return None, None
+
+    # ------------------------------------------------------------------
+    # Action handlers
+    # ------------------------------------------------------------------
+
+    def _set_attribute(self, root: ET.Element, edit: Dict) -> Dict:
+        """Change an XML attribute on an activity found by displayName/idRef.
+
+        Edit keys: displayName?, idRef?, attribute, value
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        attr_name = edit.get('attribute')
+        new_value = edit.get('value')
+
+        if not attr_name:
+            return {'error': 'missing "attribute" field'}
+        if new_value is None:
+            return {'error': 'missing "value" field'}
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+
+        elem = self._find_element(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+
+        old_value = elem.get(attr_name)
+        elem.set(attr_name, new_value)
+
+        return {
+            'action': 'set_attribute',
+            'target': display_name or id_ref,
+            'attribute': attr_name,
+            'old_value': old_value,
+            'new_value': new_value,
+        }
+
+    def _remove_variable(self, root: ET.Element, edit: Dict) -> Dict:
+        """Remove a <Variable> from a Sequence's Variables collection.
+
+        Edit keys: name, sequenceDisplayName?
+        Searches for <Variable x:TypeArguments="..."> with Name="<name>" inside
+        a <Sequence.Variables> element belonging to the target sequence.
+        """
+        var_name = edit.get('name')
+        seq_display_name = edit.get('sequenceDisplayName')
+
+        if not var_name:
+            return {'error': 'missing "name" field'}
+
+        # Build the tag names we need to match
+        variable_tag_local = 'Variable'
+        seq_vars_suffix = '.Variables'
+
+        # Search all elements for Variable with matching Name
+        parent_map = {child: parent for parent in root.iter() for child in parent}
+
+        for elem in root.iter():
+            _, local_name = parse_tag(elem.tag)
+            if local_name != variable_tag_local:
+                continue
+            if elem.get('Name') != var_name:
+                continue
+
+            # Found a Variable with matching name — check parent sequence
+            variables_container = parent_map.get(elem)
+            if variables_container is None:
+                continue
+
+            _, container_local = parse_tag(variables_container.tag)
+            if not container_local.endswith(seq_vars_suffix):
+                continue
+
+            # Check if the sequence matches sequenceDisplayName (if specified)
+            if seq_display_name:
+                sequence = parent_map.get(variables_container)
+                if sequence is None or sequence.get('DisplayName') != seq_display_name:
+                    continue
+
+            # Remove the variable element
+            variables_container.remove(elem)
+
+            # If the Variables container is now empty, remove it too
+            if len(variables_container) == 0:
+                grandparent = parent_map.get(variables_container)
+                if grandparent is not None:
+                    grandparent.remove(variables_container)
+
+            return {
+                'action': 'remove_variable',
+                'name': var_name,
+                'sequence': seq_display_name or '(any)',
+            }
+
+        target_desc = f'variable "{var_name}"'
+        if seq_display_name:
+            target_desc += f' in sequence "{seq_display_name}"'
+        return {'error': f'{target_desc} not found'}
+
+    def _add_variable(self, root: ET.Element, edit: Dict) -> Dict:
+        """Add a <Variable> to a Sequence's Variables collection.
+
+        Edit keys: name, type (e.g. "String"), default?, sequenceDisplayName
+        """
+        var_name = edit.get('name')
+        var_type = edit.get('type', 'String')
+        default_val = edit.get('default')
+        seq_display_name = edit.get('sequenceDisplayName')
+
+        if not var_name:
+            return {'error': 'missing "name" field'}
+        if not seq_display_name:
+            return {'error': 'missing "sequenceDisplayName" field'}
+
+        # Find the target sequence
+        seq_elem = self._find_element(root, display_name=seq_display_name)
+        if seq_elem is None:
+            return {'error': f'sequence not found: {seq_display_name}'}
+
+        # Get or create the Sequence.Variables container
+        _, seq_local = parse_tag(seq_elem.tag)
+        ns_uri = seq_elem.tag.replace(seq_local, '').strip('{}') if '{' in seq_elem.tag else ''
+        vars_tag = f'{{{ns_uri}}}{seq_local}.Variables' if ns_uri else f'{seq_local}.Variables'
+
+        vars_container = seq_elem.find(vars_tag)
+        if vars_container is None:
+            vars_container = ET.SubElement(seq_elem, vars_tag)
+            # Move it to be the first child (convention)
+            seq_elem.remove(vars_container)
+            seq_elem.insert(0, vars_container)
+
+        # Build the Variable element
+        xaml_type = TypeMapper.json_to_xaml_type(var_type)
+        variable_tag = get_ns_tag('', 'Variable')
+        x_type_args = get_ns_tag('x', 'TypeArguments')
+
+        var_elem = ET.SubElement(vars_container, variable_tag)
+        var_elem.set(x_type_args, xaml_type)
+        var_elem.set('Name', var_name)
+
+        if default_val is not None:
+            var_elem.set('Default', default_val)
+
+        return {
+            'action': 'add_variable',
+            'name': var_name,
+            'type': var_type,
+            'sequence': seq_display_name,
+        }
+
+    def _remove_activity(self, root: ET.Element, edit: Dict) -> Dict:
+        """Remove an activity (and all its children) from its parent.
+
+        Edit keys: displayName?, idRef?
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+
+        parent, elem = self._find_element_with_parent(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+
+        if parent is None:
+            return {'error': 'cannot remove root element'}
+
+        parent.remove(elem)
+
+        return {
+            'action': 'remove_activity',
+            'target': display_name or id_ref,
+        }
+
+
+# =============================================================================
 # Main CLI
 # =============================================================================
 
@@ -6930,8 +7282,8 @@ Examples:
     parser.add_argument(
         '--mode', '-m',
         required=True,
-        choices=['read', 'write'],
-        help='Conversion mode: "read" (XAML to JSON) or "write" (JSON to XAML)'
+        choices=['read', 'write', 'edit'],
+        help='Conversion mode: "read" (XAML to JSON), "write" (JSON to XAML), or "edit" (in-place XAML editing)'
     )
 
     parser.add_argument(
@@ -6957,6 +7309,11 @@ Examples:
         '--validate', '-v',
         action='store_true',
         help='Validate output (future enhancement)'
+    )
+
+    parser.add_argument(
+        '--edits', '-e',
+        help='Path to edits JSON file (edit mode only)'
     )
 
     args = parser.parse_args()
@@ -6989,7 +7346,7 @@ Examples:
 
             print(f"Successfully converted XAML to JSON: {args.output}")
 
-        else:  # write mode
+        elif args.mode == 'write':
             # JSON to XAML
             with open(args.input, 'r', encoding='utf-8') as f:
                 json_data = json.load(f)
@@ -7005,6 +7362,33 @@ Examples:
             )
 
             print(f"Successfully converted JSON to XAML: {args.output}")
+
+        elif args.mode == 'edit':
+            # In-place XAML editing
+            if not args.edits:
+                print("Error: --edits is required for edit mode", file=sys.stderr)
+                return 1
+
+            edits_path = Path(args.edits)
+            if not edits_path.exists():
+                print(f"Error: Edits file not found: {args.edits}", file=sys.stderr)
+                return 1
+
+            with open(args.edits, 'r', encoding='utf-8') as f:
+                edits_data = json.load(f)
+
+            editor = XamlEditor()
+            result = editor.edit_file(args.input, edits_data)
+
+            # Write result JSON to output
+            with open(args.output, 'w', encoding='utf-8') as f:
+                json.dump(result, f, indent=2, ensure_ascii=False)
+
+            if result.get('success'):
+                print(f"Successfully edited XAML: {args.input}")
+            else:
+                print(f"Edit failed: {result.get('error', 'unknown error')}", file=sys.stderr)
+                return 1
 
         return 0
 
