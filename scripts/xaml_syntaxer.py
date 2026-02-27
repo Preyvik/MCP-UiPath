@@ -987,6 +987,27 @@ class IdRefGenerator:
         """Reset all counters."""
         self._counters.clear()
 
+    def seed_from_tree(self, root: ET.Element) -> None:
+        """Scan existing IdRef attributes and seed counters to avoid collisions.
+
+        Parses IdRef values matching the pattern "TypePrefix_N" and sets the
+        counter for each prefix to at least N, so subsequent generate() calls
+        produce higher numbers.
+        """
+        idref_attr = f'{{{NAMESPACES["sap2010"]}}}WorkflowViewState.IdRef'
+        for elem in root.iter():
+            idref = elem.get(idref_attr)
+            if idref:
+                sep = idref.rfind('_')
+                if sep > 0:
+                    prefix = idref[:sep]
+                    try:
+                        num = int(idref[sep + 1:])
+                        if num > self._counters.get(prefix, 0):
+                            self._counters[prefix] = num
+                    except ValueError:
+                        pass
+
 
 # =============================================================================
 # ViewState Builder
@@ -6915,9 +6936,10 @@ class XamlConstructor:
 class XamlEditor:
     """Edit UiPath XAML files in-place at the XML ElementTree level.
 
-    Supports targeted mutations (set attribute, add/remove variable, remove activity)
-    while preserving ViewState, IdRef assignments, attribute ordering, and all other
-    untouched elements exactly as they were.
+    Supports targeted mutations (set attribute, add/remove variable, remove/insert/move/replace
+    activity, wrap/unwrap container, add/remove argument, rename activity) while preserving
+    ViewState, IdRef assignments, attribute ordering, and all other untouched elements exactly
+    as they were.
     """
 
     # sap2010:WorkflowViewState.IdRef attribute (fully qualified)
@@ -6960,12 +6982,30 @@ class XamlEditor:
             try:
                 if action == 'set_attribute':
                     result = self._set_attribute(root, edit)
+                elif action == 'set_element_value':
+                    result = self._set_element_value(root, edit)
                 elif action == 'remove_variable':
                     result = self._remove_variable(root, edit)
                 elif action == 'add_variable':
                     result = self._add_variable(root, edit)
                 elif action == 'remove_activity':
                     result = self._remove_activity(root, edit)
+                elif action == 'insert_activity':
+                    result = self._insert_activity(root, edit)
+                elif action == 'wrap_in_container':
+                    result = self._wrap_in_container(root, edit)
+                elif action == 'move_activity':
+                    result = self._move_activity(root, edit)
+                elif action == 'replace_activity':
+                    result = self._replace_activity(root, edit)
+                elif action == 'add_argument':
+                    result = self._add_argument(root, edit)
+                elif action == 'remove_argument':
+                    result = self._remove_argument(root, edit)
+                elif action == 'unwrap_container':
+                    result = self._unwrap_container(root, edit)
+                elif action == 'rename_activity':
+                    result = self._rename_activity(root, edit)
                 else:
                     return {
                         'success': False, 'changes': changes, 'warnings': warnings,
@@ -7084,6 +7124,78 @@ class XamlEditor:
         return None, None
 
     # ------------------------------------------------------------------
+    # Constructor-to-writer format normalization
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _normalize_activity_json(activity: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize constructor-format activity JSON to writer-compatible format.
+
+        Converts flat string to/value fields on Assign to typed objects,
+        renames 'activities' to 'children', and recurses into child structures.
+        """
+        if not isinstance(activity, dict):
+            return activity
+
+        # Rename 'activities' → 'children'
+        if 'activities' in activity and 'children' not in activity:
+            activity['children'] = activity.pop('activities')
+
+        # Normalize Assign to/value
+        if activity.get('type') == 'Assign':
+            if isinstance(activity.get('to'), str):
+                val = activity['to']
+                bracketed = f'[{val}]' if val and not (val.startswith('[') and val.endswith(']')) else val
+                activity['to'] = {'type': 'String', 'value': bracketed}
+            if isinstance(activity.get('value'), str):
+                val = activity['value']
+                # Infer type from value
+                inferred_type = 'String'
+                raw = val
+                if raw.startswith('[') and raw.endswith(']'):
+                    raw = raw[1:-1]
+                if raw in ('True', 'False'):
+                    inferred_type = 'Boolean'
+                elif re.match(r'^-?\d+$', raw):
+                    inferred_type = 'Int32'
+                elif re.match(r'^-?\d+\.\d+$', raw):
+                    inferred_type = 'Double'
+                # Use to.type if available
+                if isinstance(activity.get('to'), dict):
+                    inferred_type = activity['to'].get('type', inferred_type)
+                bracketed = f'[{val}]' if val and not (val.startswith('[') and val.endswith(']')) else val
+                activity['value'] = {'type': inferred_type, 'value': bracketed}
+
+        # Recurse into children
+        for child in activity.get('children', []):
+            XamlEditor._normalize_activity_json(child)
+
+        # Recurse into If branches
+        if isinstance(activity.get('then'), dict):
+            XamlEditor._normalize_activity_json(activity['then'])
+        if isinstance(activity.get('else'), dict):
+            XamlEditor._normalize_activity_json(activity['else'])
+
+        # Recurse into TryCatch
+        if isinstance(activity.get('try'), dict):
+            XamlEditor._normalize_activity_json(activity['try'])
+        if isinstance(activity.get('finally'), dict):
+            XamlEditor._normalize_activity_json(activity['finally'])
+        if isinstance(activity.get('catches'), list):
+            for c in activity['catches']:
+                if isinstance(c, dict) and isinstance(c.get('handler'), dict):
+                    XamlEditor._normalize_activity_json(c['handler'])
+
+        # Recurse into ForEach/While body
+        if isinstance(activity.get('body'), dict):
+            if isinstance(activity['body'].get('activity'), dict):
+                XamlEditor._normalize_activity_json(activity['body']['activity'])
+            elif activity['body'].get('type'):
+                XamlEditor._normalize_activity_json(activity['body'])
+
+        return activity
+
+    # ------------------------------------------------------------------
     # Action handlers
     # ------------------------------------------------------------------
 
@@ -7119,6 +7231,98 @@ class XamlEditor:
             'old_value': old_value,
             'new_value': new_value,
         }
+
+    def _set_element_value(self, root: ET.Element, edit: Dict) -> Dict:
+        """Change text content of a child property element (e.g. Assign.To, Assign.Value).
+
+        Edit keys: displayName?, idRef?, property, value, type?
+
+        Many UiPath activity properties are stored as child element text content
+        rather than XML attributes — e.g. Assign.To/Assign.Value contain
+        OutArgument/InArgument wrappers whose .text holds the expression.
+
+        The "property" field accepts short form ("Value", "To") which is auto-
+        expanded to "ActivityType.Property" (e.g. "Assign.Value"), or full form
+        ("Assign.Value") used as-is.
+
+        If "type" is provided, also updates the x:TypeArguments attribute on the
+        inner argument wrapper via TypeMapper.json_to_xaml_type().
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        prop_name = edit.get('property')
+        new_value = edit.get('value')
+        new_type = edit.get('type')
+
+        if not prop_name:
+            return {'error': 'missing "property" field'}
+        if new_value is None:
+            return {'error': 'missing "value" field'}
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+
+        # Find the target activity element
+        elem = self._find_element(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+
+        # Resolve short property name → full form (e.g. "Value" → "Assign.Value")
+        _, local_tag = parse_tag(elem.tag)
+        if '.' not in prop_name:
+            full_prop = f'{local_tag}.{prop_name}'
+        else:
+            full_prop = prop_name
+
+        # Find the property child element by matching local name
+        prop_elem = None
+        for child in elem:
+            _, child_local = parse_tag(child.tag)
+            if child_local == full_prop:
+                prop_elem = child
+                break
+
+        if prop_elem is None:
+            return {'error': f'property element "{full_prop}" not found on "{display_name or id_ref}"'}
+
+        # Find the inner argument wrapper (InArgument / OutArgument / InOutArgument)
+        arg_wrappers = ('InArgument', 'OutArgument', 'InOutArgument')
+        arg_elem = None
+        for inner in prop_elem:
+            _, inner_local = parse_tag(inner.tag)
+            if inner_local in arg_wrappers:
+                arg_elem = inner
+                break
+
+        if arg_elem is None:
+            return {'error': f'no InArgument/OutArgument/InOutArgument found inside "{full_prop}"'}
+
+        # Record old values
+        old_text = arg_elem.text
+        x_type_args = get_ns_tag('x', 'TypeArguments')
+        old_type = arg_elem.get(x_type_args)
+
+        # Set new text content
+        arg_elem.text = new_value
+
+        # Optionally update x:TypeArguments
+        if new_type is not None:
+            xaml_type = TypeMapper.json_to_xaml_type(new_type)
+            arg_elem.set(x_type_args, xaml_type)
+
+        result = {
+            'action': 'set_element_value',
+            'target': display_name or id_ref,
+            'property': full_prop,
+            'old_value': old_text,
+            'new_value': new_value,
+        }
+
+        if new_type is not None:
+            result['old_type'] = old_type
+            result['new_type'] = TypeMapper.json_to_xaml_type(new_type)
+
+        return result
 
     def _remove_variable(self, root: ET.Element, edit: Dict) -> Dict:
         """Remove a <Variable> from a Sequence's Variables collection.
@@ -7258,6 +7462,749 @@ class XamlEditor:
             'action': 'remove_activity',
             'target': display_name or id_ref,
         }
+
+    def _insert_activity(self, root: ET.Element, edit: Dict) -> Dict:
+        """Insert a new activity into a Sequence.
+
+        Edit keys: parentDisplayName, activity (JSON dict),
+                   position? (start/end/after, default: end),
+                   afterDisplayName?, afterIdRef?
+        """
+        parent_name = edit.get('parentDisplayName')
+        if not parent_name:
+            return {'error': 'missing "parentDisplayName"'}
+
+        activity_json = edit.get('activity')
+        if not activity_json or not isinstance(activity_json, dict):
+            return {'error': 'missing or invalid "activity" dict'}
+
+        position = edit.get('position', 'end')
+
+        # Find parent element
+        parent_elem = self._find_element(root, display_name=parent_name)
+        if parent_elem is None:
+            return {'error': f'parent not found: {parent_name}'}
+
+        # Verify parent is a Sequence
+        _, local = parse_tag(parent_elem.tag)
+        if local != 'Sequence':
+            return {'error': f'parent "{parent_name}" is a {local}, not a Sequence'}
+
+        # Normalize constructor format → writer format, then auto-correct
+        normalized = self._normalize_activity_json(copy.deepcopy(activity_json))
+        corrector = WorkflowAutoCorrector()
+        corrected, _ = corrector.correct(normalized)
+
+        # Seed IdRefGenerator from existing tree
+        id_gen = IdRefGenerator()
+        id_gen.seed_from_tree(root)
+
+        # Build the activity element
+        new_elem = build_activity(corrected, id_gen)
+        if new_elem is None:
+            return {'error': f'failed to build activity of type "{activity_json.get("type")}"'}
+
+        # Calculate insertion index
+        viewstate_tag = get_ns_tag('sap', 'WorkflowViewStateService.ViewState')
+        children = list(parent_elem)
+
+        if position == 'start':
+            # After Sequence.Variables (if present), or at index 0
+            insert_idx = 0
+            for i, child in enumerate(children):
+                _, child_local = parse_tag(child.tag)
+                if child_local == 'Sequence.Variables':
+                    insert_idx = i + 1
+                    break
+        elif position == 'end':
+            # Before ViewState (if present), or at end
+            insert_idx = len(children)
+            for i, child in enumerate(children):
+                if child.tag == viewstate_tag:
+                    insert_idx = i
+                    break
+        elif position == 'after':
+            after_name = edit.get('afterDisplayName')
+            after_idref = edit.get('afterIdRef')
+            if not after_name and not after_idref:
+                return {'error': '"after" position requires "afterDisplayName" or "afterIdRef"'}
+
+            # Find the sibling in direct children
+            insert_idx = -1
+            for i, child in enumerate(children):
+                if after_name and child.get('DisplayName') == after_name:
+                    insert_idx = i + 1
+                    break
+                if after_idref and child.get(self.IDREF_ATTR) == after_idref:
+                    insert_idx = i + 1
+                    break
+
+            if insert_idx < 0:
+                target = after_name or after_idref
+                return {'error': f'sibling not found as direct child: {target}'}
+        else:
+            return {'error': f'invalid position: {position} (expected start/end/after)'}
+
+        parent_elem.insert(insert_idx, new_elem)
+
+        return {
+            'action': 'insert_activity',
+            'parent': parent_name,
+            'activityType': activity_json.get('type', '?'),
+            'displayName': activity_json.get('displayName', ''),
+            'position': position,
+        }
+
+    def _wrap_in_container(self, root: ET.Element, edit: Dict) -> Dict:
+        """Wrap existing activities in a container (TryCatch, If, While, ForEach, Sequence).
+
+        Edit keys: targets (list of {displayName?, idRef?}),
+                   container (dict with type, displayName, placement?, ...)
+        """
+        targets = edit.get('targets')
+        if not targets or not isinstance(targets, list):
+            return {'error': 'missing or invalid "targets" list'}
+
+        container_json = edit.get('container')
+        if not container_json or not isinstance(container_json, dict):
+            return {'error': 'missing or invalid "container" dict'}
+
+        container_type = container_json.get('type')
+        if not container_type:
+            return {'error': 'container missing "type" field'}
+
+        placement = container_json.get('placement') or self._default_placement(container_type)
+        if not placement:
+            return {'error': f'no default placement for container type "{container_type}"'}
+
+        # Build parent_map
+        parent_map = {child: parent for parent in root.iter() for child in parent}
+
+        # Resolve all targets
+        resolved = []
+        for t in targets:
+            dn = t.get('displayName')
+            ir = t.get('idRef')
+            if not dn and not ir:
+                return {'error': 'each target must have "displayName" or "idRef"'}
+
+            elem = self._find_element(root, display_name=dn, id_ref=ir)
+            if elem is None:
+                return {'error': f'target not found: {dn or ir}'}
+            resolved.append(elem)
+
+        # Verify all targets share the same parent
+        parents = [parent_map.get(elem) for elem in resolved]
+        if any(p is None for p in parents):
+            return {'error': 'cannot wrap root element'}
+
+        if len(set(id(p) for p in parents)) != 1:
+            return {'error': 'all targets must share the same parent element'}
+
+        shared_parent = parents[0]
+
+        # Record insertion position (index of first target in parent)
+        children = list(shared_parent)
+        indices = []
+        for elem in resolved:
+            for i, child in enumerate(children):
+                if child is elem:
+                    indices.append(i)
+                    break
+
+        if len(indices) != len(resolved):
+            return {'error': 'some targets are not direct children of their parent'}
+
+        insert_pos = min(indices)
+
+        # Detach all targets from parent
+        for elem in resolved:
+            shared_parent.remove(elem)
+
+        try:
+            # Seed IdRefGenerator from tree + detached elements
+            id_gen = IdRefGenerator()
+            id_gen.seed_from_tree(root)
+            for e in resolved:
+                id_gen.seed_from_tree(e)
+
+            # If multiple targets going into a single-activity slot, auto-wrap in Sequence
+            target_elems = list(resolved)
+            single_slots = {'try', 'then', 'else', 'body'}
+            if len(target_elems) > 1 and placement in single_slots:
+                wrapper_seq = ET.Element(get_ns_tag('', 'Sequence'))
+                wrapper_seq.set('DisplayName', 'Wrapped Activities')
+                hint_size = DEFAULT_HINT_SIZES.get('Sequence', '400,200')
+                wrapper_seq.set(get_ns_tag('sap', 'VirtualizedContainerService.HintSize'), hint_size)
+                wrapper_seq.set(get_ns_tag('sap2010', 'WorkflowViewState.IdRef'),
+                                id_gen.generate('Sequence'))
+                for e in target_elems:
+                    wrapper_seq.append(e)
+                viewstate_elem = ViewStateBuilder.create_viewstate_element({'IsExpanded': True})
+                wrapper_seq.append(viewstate_elem)
+                target_elems = [wrapper_seq]
+
+            # Build the container (strip placement before building)
+            build_json = {k: v for k, v in container_json.items() if k != 'placement'}
+
+            # Normalize constructor format → writer format, then auto-correct
+            normalized = self._normalize_activity_json(copy.deepcopy(build_json))
+            corrector = WorkflowAutoCorrector()
+            corrected, _ = corrector.correct(normalized)
+
+            container_elem = build_activity(corrected, id_gen)
+            if container_elem is None:
+                raise RuntimeError(f'failed to build container of type "{container_type}"')
+
+            # Inject target elements into the container's slot
+            for te in target_elems:
+                self._inject_into_slot(container_elem, te, placement, container_type)
+
+            # Insert container at the original position
+            shared_parent.insert(insert_pos, container_elem)
+
+        except Exception:
+            # Restore detached elements on error (preserve atomicity)
+            for idx, elem in sorted(zip(indices, resolved)):
+                shared_parent.insert(idx, elem)
+            raise
+
+        return {
+            'action': 'wrap_in_container',
+            'container': container_type,
+            'displayName': container_json.get('displayName', ''),
+            'placement': placement,
+            'targets': [t.get('displayName') or t.get('idRef') for t in targets],
+        }
+
+    # ------------------------------------------------------------------
+    # New action handlers (move, replace, arguments, unwrap, rename)
+    # ------------------------------------------------------------------
+
+    def _move_activity(self, root: ET.Element, edit: Dict) -> Dict:
+        """Move an activity to a different parent or position within the same parent.
+
+        Edit keys: displayName?, idRef?, targetParentDisplayName, position? (start/end/after),
+                   afterDisplayName?, afterIdRef?
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        target_parent_name = edit.get('targetParentDisplayName')
+        position = edit.get('position', 'end')
+
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+        if not target_parent_name:
+            return {'error': 'missing "targetParentDisplayName"'}
+
+        # Find element and its current parent
+        source_parent, elem = self._find_element_with_parent(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+        if source_parent is None:
+            return {'error': 'cannot move root element'}
+
+        # Find target parent
+        target_parent = self._find_element(root, display_name=target_parent_name)
+        if target_parent is None:
+            return {'error': f'target parent not found: {target_parent_name}'}
+
+        # Verify target parent is a Sequence
+        _, target_local = parse_tag(target_parent.tag)
+        if target_local != 'Sequence':
+            return {'error': f'target parent "{target_parent_name}" is a {target_local}, not a Sequence'}
+
+        # Record original position for rollback
+        source_children = list(source_parent)
+        original_index = None
+        for i, child in enumerate(source_children):
+            if child is elem:
+                original_index = i
+                break
+        if original_index is None:
+            return {'error': 'element is not a direct child of its parent'}
+
+        # Detach from source
+        source_parent.remove(elem)
+
+        try:
+            # Calculate insertion index in target (same logic as _insert_activity)
+            viewstate_tag = get_ns_tag('sap', 'WorkflowViewStateService.ViewState')
+            target_children = list(target_parent)
+
+            if position == 'start':
+                insert_idx = 0
+                for i, child in enumerate(target_children):
+                    _, child_local = parse_tag(child.tag)
+                    if child_local == 'Sequence.Variables':
+                        insert_idx = i + 1
+                        break
+            elif position == 'end':
+                insert_idx = len(target_children)
+                for i, child in enumerate(target_children):
+                    if child.tag == viewstate_tag:
+                        insert_idx = i
+                        break
+            elif position == 'after':
+                after_name = edit.get('afterDisplayName')
+                after_idref = edit.get('afterIdRef')
+                if not after_name and not after_idref:
+                    return {'error': '"after" position requires "afterDisplayName" or "afterIdRef"'}
+
+                insert_idx = -1
+                for i, child in enumerate(target_children):
+                    if after_name and child.get('DisplayName') == after_name:
+                        insert_idx = i + 1
+                        break
+                    if after_idref and child.get(self.IDREF_ATTR) == after_idref:
+                        insert_idx = i + 1
+                        break
+
+                if insert_idx < 0:
+                    target = after_name or after_idref
+                    raise RuntimeError(f'sibling not found as direct child of target: {target}')
+            else:
+                raise RuntimeError(f'invalid position: {position} (expected start/end/after)')
+
+            target_parent.insert(insert_idx, elem)
+
+        except Exception:
+            # Restore element at original position on error
+            source_parent.insert(original_index, elem)
+            raise
+
+        return {
+            'action': 'move_activity',
+            'target': display_name or id_ref,
+            'targetParent': target_parent_name,
+            'position': position,
+        }
+
+    def _replace_activity(self, root: ET.Element, edit: Dict) -> Dict:
+        """Replace an activity with a new one in-place.
+
+        Edit keys: displayName?, idRef?, activity (JSON dict)
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        activity_json = edit.get('activity')
+
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+        if not activity_json or not isinstance(activity_json, dict):
+            return {'error': 'missing or invalid "activity" dict'}
+
+        # Find element and its parent
+        parent, elem = self._find_element_with_parent(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+        if parent is None:
+            return {'error': 'cannot replace root element'}
+
+        # Record position
+        children = list(parent)
+        saved_index = None
+        for i, child in enumerate(children):
+            if child is elem:
+                saved_index = i
+                break
+        if saved_index is None:
+            return {'error': 'element is not a direct child of its parent'}
+
+        # Detach old element
+        parent.remove(elem)
+
+        try:
+            # Normalize constructor format → writer format, then auto-correct
+            normalized = self._normalize_activity_json(copy.deepcopy(activity_json))
+            corrector = WorkflowAutoCorrector()
+            corrected, _ = corrector.correct(normalized)
+
+            id_gen = IdRefGenerator()
+            id_gen.seed_from_tree(root)
+
+            new_elem = build_activity(corrected, id_gen)
+            if new_elem is None:
+                raise RuntimeError(f'failed to build activity of type "{activity_json.get("type")}"')
+
+            parent.insert(saved_index, new_elem)
+
+        except Exception:
+            # Restore old element on error
+            parent.insert(saved_index, elem)
+            raise
+
+        return {
+            'action': 'replace_activity',
+            'oldTarget': display_name or id_ref,
+            'newType': activity_json.get('type', '?'),
+            'newDisplayName': activity_json.get('displayName', ''),
+        }
+
+    def _add_argument(self, root: ET.Element, edit: Dict) -> Dict:
+        """Add a workflow argument (In/Out/InOut) as an x:Property in x:Members.
+
+        Edit keys: name, direction? (In/Out/InOut, default: In), type? (default: String)
+        """
+        arg_name = edit.get('name')
+        direction = edit.get('direction', 'In')
+        arg_type = edit.get('type', 'String')
+
+        if not arg_name:
+            return {'error': 'missing "name" field'}
+        if direction not in ('In', 'Out', 'InOut'):
+            return {'error': f'invalid direction: {direction} (expected In/Out/InOut)'}
+
+        # Find or create x:Members
+        members_tag = get_ns_tag('x', 'Members')
+        members_elem = root.find(members_tag)
+
+        if members_elem is None:
+            # Create x:Members — insert after the last TextExpression.* element
+            insert_idx = 0
+            for i, child in enumerate(root):
+                _, child_local = parse_tag(child.tag)
+                if child_local.startswith('TextExpression.'):
+                    insert_idx = i + 1
+            members_elem = ET.Element(members_tag)
+            root.insert(insert_idx, members_elem)
+
+        # Check for duplicate
+        prop_tag = get_ns_tag('x', 'Property')
+        for existing in members_elem:
+            _, local = parse_tag(existing.tag)
+            if local == 'Property' and existing.get('Name') == arg_name:
+                return {'error': f'argument already exists: {arg_name}'}
+
+        # Build type string
+        xaml_type = TypeMapper.json_to_xaml_type(arg_type)
+        if direction == 'Out':
+            type_str = f'OutArgument({xaml_type})'
+        elif direction == 'InOut':
+            type_str = f'InOutArgument({xaml_type})'
+        else:
+            type_str = f'InArgument({xaml_type})'
+
+        # Create x:Property element
+        prop_elem = ET.SubElement(members_elem, prop_tag)
+        prop_elem.set('Name', arg_name)
+        prop_elem.set('Type', type_str)
+
+        return {
+            'action': 'add_argument',
+            'name': arg_name,
+            'direction': direction,
+            'type': arg_type,
+        }
+
+    def _remove_argument(self, root: ET.Element, edit: Dict) -> Dict:
+        """Remove a workflow argument by name from x:Members.
+
+        Edit keys: name
+        """
+        arg_name = edit.get('name')
+        if not arg_name:
+            return {'error': 'missing "name" field'}
+
+        # Find x:Members
+        members_tag = get_ns_tag('x', 'Members')
+        members_elem = root.find(members_tag)
+        if members_elem is None:
+            return {'error': 'no arguments defined (x:Members not found)'}
+
+        # Find the x:Property with matching name
+        target_prop = None
+        for child in members_elem:
+            _, local = parse_tag(child.tag)
+            if local == 'Property' and child.get('Name') == arg_name:
+                target_prop = child
+                break
+
+        if target_prop is None:
+            return {'error': f'argument not found: {arg_name}'}
+
+        members_elem.remove(target_prop)
+
+        # If x:Members is now empty, remove it from root
+        if len(members_elem) == 0:
+            root.remove(members_elem)
+
+        return {
+            'action': 'remove_argument',
+            'name': arg_name,
+        }
+
+    def _unwrap_container(self, root: ET.Element, edit: Dict) -> Dict:
+        """Unwrap a container, flattening its children back into the parent.
+
+        Edit keys: displayName?, idRef?, slot?
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        slot = edit.get('slot')
+
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+
+        # Find container and its parent
+        parent, container = self._find_element_with_parent(root, display_name, id_ref)
+        if container is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+        if parent is None:
+            return {'error': 'cannot unwrap root element'}
+
+        # Determine container type
+        _, container_type = parse_tag(container.tag)
+
+        # Resolve slot default if not provided
+        if not slot:
+            slot = self._default_placement(container_type)
+            if not slot:
+                return {'error': f'no default slot for container type "{container_type}" — specify "slot" explicitly'}
+
+        # Extract children from slot
+        extracted = self._extract_from_slot(container, slot, container_type)
+        if not extracted:
+            return {'error': f'no children found in slot "{slot}" of "{display_name or id_ref}"'}
+
+        # Record container position in parent
+        parent_children = list(parent)
+        container_index = None
+        for i, child in enumerate(parent_children):
+            if child is container:
+                container_index = i
+                break
+        if container_index is None:
+            return {'error': 'container is not a direct child of its parent'}
+
+        # Remove container from parent
+        parent.remove(container)
+
+        try:
+            # Insert extracted children at the container's position (in order)
+            for offset, child_elem in enumerate(extracted):
+                parent.insert(container_index + offset, child_elem)
+        except Exception:
+            # Restore container on error — remove any inserted children first
+            for child_elem in extracted:
+                try:
+                    parent.remove(child_elem)
+                except ValueError:
+                    pass
+            parent.insert(container_index, container)
+            raise
+
+        return {
+            'action': 'unwrap_container',
+            'target': display_name or id_ref,
+            'slot': slot,
+            'childrenExtracted': len(extracted),
+        }
+
+    def _rename_activity(self, root: ET.Element, edit: Dict) -> Dict:
+        """Rename an activity's DisplayName.
+
+        Edit keys: displayName?, idRef?, newName
+        """
+        display_name = edit.get('displayName')
+        id_ref = edit.get('idRef')
+        new_name = edit.get('newName')
+
+        if not display_name and not id_ref:
+            return {'error': 'must specify "displayName" or "idRef"'}
+        if not new_name:
+            return {'error': 'missing "newName" field'}
+
+        elem = self._find_element(root, display_name, id_ref)
+        if elem is None:
+            target = display_name or id_ref
+            return {'error': f'element not found: {target}'}
+
+        old_name = elem.get('DisplayName', '')
+        elem.set('DisplayName', new_name)
+
+        return {
+            'action': 'rename_activity',
+            'oldName': old_name,
+            'newName': new_name,
+        }
+
+    # ------------------------------------------------------------------
+    # Slot injection / extraction helpers
+    # ------------------------------------------------------------------
+
+    def _extract_from_slot(self, container: ET.Element, slot: str,
+                           container_type: str) -> List[ET.Element]:
+        """Extract and detach children from a container's slot.
+
+        This is the inverse of _inject_into_slot. Returns a list of detached
+        ET.Elements from the specified slot.
+        """
+        viewstate_tag = get_ns_tag('sap', 'WorkflowViewStateService.ViewState')
+        extracted = []
+
+        if slot == 'children':
+            # Sequence: all direct children except Sequence.Variables and ViewState
+            for child in list(container):
+                _, child_local = parse_tag(child.tag)
+                if child_local == 'Sequence.Variables':
+                    continue
+                if child.tag == viewstate_tag:
+                    continue
+                container.remove(child)
+                extracted.append(child)
+
+        elif slot == 'try':
+            # TryCatch: children of <TryCatch.Try>
+            try_tag = get_ns_tag('', 'TryCatch.Try')
+            try_elem = container.find(try_tag)
+            if try_elem is not None:
+                for child in list(try_elem):
+                    try_elem.remove(child)
+                    extracted.append(child)
+
+        elif slot in ('then', 'else'):
+            # If: children of <If.Then> or <If.Else>
+            slot_tag = get_ns_tag('', f'If.{slot.capitalize()}')
+            slot_elem = container.find(slot_tag)
+            if slot_elem is not None:
+                for child in list(slot_elem):
+                    slot_elem.remove(child)
+                    extracted.append(child)
+
+        elif slot == 'body':
+            _, local = parse_tag(container.tag)
+            if local == 'While':
+                # While: direct children except condition/ViewState property elements
+                for child in list(container):
+                    _, child_local = parse_tag(child.tag)
+                    if child_local.startswith('While.'):
+                        continue
+                    if child.tag == viewstate_tag:
+                        continue
+                    container.remove(child)
+                    extracted.append(child)
+            elif local == 'ForEach':
+                # ForEach: activity inside ForEach.Body > ActivityAction
+                body_tag = get_ns_tag('ui', 'ForEach.Body')
+                body_elem = container.find(body_tag)
+                if body_elem is not None:
+                    for action_child in body_elem:
+                        _, action_local = parse_tag(action_child.tag)
+                        if action_local == 'ActivityAction':
+                            for inner in list(action_child):
+                                # Skip the argument declaration (DelegateInArgument)
+                                _, inner_local = parse_tag(inner.tag)
+                                if inner_local == 'DelegateInArgument':
+                                    continue
+                                action_child.remove(inner)
+                                extracted.append(inner)
+                            break
+            else:
+                raise RuntimeError(f'"body" slot not supported for {local}')
+
+        else:
+            raise RuntimeError(f'unknown slot: {slot}')
+
+        return extracted
+
+    def _inject_into_slot(self, container: ET.Element, elem: ET.Element,
+                          placement: str, container_type: str) -> None:
+        """Place an ET.Element into the correct structural position of a container.
+
+        Slots:
+          children  → Sequence: insert before ViewState
+          try       → TryCatch: find/create <TryCatch.Try>, set content
+          then/else → If: find/create <If.Then>/<If.Else>, set content
+          body      → While: insert before ViewState; ForEach: find ActivityAction, append
+        """
+        viewstate_tag = get_ns_tag('sap', 'WorkflowViewStateService.ViewState')
+
+        if placement == 'children':
+            # Sequence: insert before ViewState
+            children = list(container)
+            insert_idx = len(children)
+            for i, child in enumerate(children):
+                if child.tag == viewstate_tag:
+                    insert_idx = i
+                    break
+            container.insert(insert_idx, elem)
+
+        elif placement == 'try':
+            # TryCatch: find or create <TryCatch.Try>
+            try_tag = get_ns_tag('', 'TryCatch.Try')
+            try_elem = container.find(try_tag)
+            if try_elem is None:
+                try_elem = ET.Element(try_tag)
+                container.insert(0, try_elem)
+            else:
+                # Clear existing placeholder content
+                for child in list(try_elem):
+                    try_elem.remove(child)
+            try_elem.append(elem)
+
+        elif placement in ('then', 'else'):
+            # If: find or create <If.Then> / <If.Else>
+            slot_tag = get_ns_tag('', f'If.{placement.capitalize()}')
+            slot_elem = container.find(slot_tag)
+            if slot_elem is None:
+                # Insert before ViewState
+                children = list(container)
+                insert_idx = len(children)
+                for i, child in enumerate(children):
+                    if child.tag == viewstate_tag:
+                        insert_idx = i
+                        break
+                slot_elem = ET.Element(slot_tag)
+                container.insert(insert_idx, slot_elem)
+            else:
+                for child in list(slot_elem):
+                    slot_elem.remove(child)
+            slot_elem.append(elem)
+
+        elif placement == 'body':
+            _, local = parse_tag(container.tag)
+            if local == 'While':
+                # While: body is a direct child, insert before ViewState
+                children = list(container)
+                insert_idx = len(children)
+                for i, child in enumerate(children):
+                    if child.tag == viewstate_tag:
+                        insert_idx = i
+                        break
+                container.insert(insert_idx, elem)
+            elif local == 'ForEach':
+                # ForEach: body structure is ForEach.Body > ActivityAction > [activity]
+                body_tag = get_ns_tag('ui', 'ForEach.Body')
+                body_elem = container.find(body_tag)
+                if body_elem is not None:
+                    # Find existing ActivityAction and append
+                    for action_child in body_elem:
+                        _, action_local = parse_tag(action_child.tag)
+                        if action_local == 'ActivityAction':
+                            action_child.append(elem)
+                            return
+                raise RuntimeError(f'ForEach.Body/ActivityAction structure not found in container')
+            else:
+                raise RuntimeError(f'"body" placement not supported for {local}')
+
+        else:
+            raise RuntimeError(f'unknown placement: {placement}')
+
+    @staticmethod
+    def _default_placement(container_type: str) -> Optional[str]:
+        """Return the default placement slot for a container type."""
+        defaults = {
+            'TryCatch': 'try',
+            'If': 'then',
+            'While': 'body',
+            'ForEach': 'body',
+            'Sequence': 'children',
+        }
+        return defaults.get(container_type)
 
 
 # =============================================================================
